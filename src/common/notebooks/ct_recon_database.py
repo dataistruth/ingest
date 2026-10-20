@@ -17,7 +17,7 @@ dbutils.widgets.text("database_name", "")
 dbutils.widgets.text("ct_head", "0")
 dbutils.widgets.text("ct_watermark_before", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_metadata")
 
 group_id = dbutils.widgets.get("group_id").strip()
 client_nm = dbutils.widgets.get("client_nm").strip()

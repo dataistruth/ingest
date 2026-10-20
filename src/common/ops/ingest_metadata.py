@@ -1,4 +1,4 @@
-"""mssql-python writes to ipac_ingest_metadata."""
+"""mssql-python writes to ipac_metadata."""
 
 import uuid
 

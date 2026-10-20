@@ -26,3 +26,12 @@ def load_clients(config_dir):
         }
         for row in rows
     ]
+
+
+def active_clients(config_dir):
+    return [c for c in load_clients(config_dir) if c["is_active"]]
+
+
+def client_database_name(conn, client_name):
+    pattern = conn.get("database_pattern") or "{client_name}"
+    return pattern.format(env=conn.get("env", ""), client_name=client_name)

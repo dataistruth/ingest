@@ -3,7 +3,7 @@
   The same service principal/login can read source CT databases and write this
   central metadata database, or separate read/write principals can be used.
 */
-USE ipac_ingest_metadata;
+USE ipac_metadata;
 GO
 
 DECLARE @Principal sysname = N'<KEEP_USER_ID>';

@@ -6,7 +6,7 @@
 # MAGIC then MERGE into Delta (SCD1).
 # MAGIC
 # MAGIC Apply metrics / compare writes use **mssql-python** against
-# MAGIC `ipac_ingest_metadata`. Do not JDBC those lookups.
+# MAGIC `ipac_metadata`. Do not JDBC those lookups.
 
 # COMMAND ----------
 
@@ -17,7 +17,7 @@ dbutils.widgets.text("ct_head", "0")
 dbutils.widgets.text("table_nm", "")
 dbutils.widgets.text("watermark_before", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_metadata")
 dbutils.widgets.text("dest_schema_suffix", "_raw")
 
 group_id = dbutils.widgets.get("group_id").strip()

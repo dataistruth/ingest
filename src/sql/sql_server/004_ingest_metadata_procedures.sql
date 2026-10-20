@@ -5,7 +5,7 @@
   On PASS, recon_ready and both watermark levels commit in one transaction.
   On any mismatch, nothing advances.
 */
-USE ipac_ingest_metadata;
+USE ipac_metadata;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_complete_ingest_group

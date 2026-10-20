@@ -73,10 +73,10 @@ AND database_name + ct_head_version = group identity
 
 Do **not** gate calc on “job finished” or “last update time.”
 
-## SQL Server audit database (`ipac_ingest_metadata`)
+## SQL Server audit database (`ipac_metadata`)
 
 JDBC ingest does not use LakeFlow event logs. Its operational metadata is kept
-in the SQL Server OLTP database `ipac_ingest_metadata` and accessed with
+in the SQL Server OLTP database `ipac_metadata` and accessed with
 `mssql-python`. Unity Catalog contains only the Delta target tables.
 
 | Table | Purpose |

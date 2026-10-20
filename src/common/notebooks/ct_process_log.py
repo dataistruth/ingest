@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Write process_log for database group
 # MAGIC
-# MAGIC **Connection:** mssql-python to `ipac_ingest_metadata.dbo.process_log`. No JDBC.
+# MAGIC **Connection:** mssql-python to `ipac_metadata.dbo.process_log`. No JDBC.
 
 # COMMAND ----------
 
@@ -11,7 +11,7 @@ dbutils.widgets.text("client_nm", "")
 dbutils.widgets.text("database_name", "")
 dbutils.widgets.text("ct_head", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_metadata")
 
 group_id = dbutils.widgets.get("group_id").strip()
 client_nm = dbutils.widgets.get("client_nm").strip()

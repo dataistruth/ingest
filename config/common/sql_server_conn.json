@@ -4,5 +4,7 @@
   "username_key": "{env}_sql_db_username",
   "password_key": "{env}_sql_db_password",
   "server_key": "{env}_sql_server",
-  "port": 1433
+  "port": 1433,
+  "source_schema": "dbo",
+  "database_pattern": "iPC_2025_Dev7_{client_name}"
 }

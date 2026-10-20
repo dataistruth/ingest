@@ -46,6 +46,23 @@ def fetch_pending_ct_counts(conn, schema, table_name, watermark_before, ct_head)
     }
 
 
+def fetch_table_watermark(conn, database_name, schema, table_name):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT last_version
+            FROM dbo.ct_table_watermark
+            WHERE database_name = ? AND source_schema = ? AND table_name = ?;
+            """,
+            (database_name, schema, table_name),
+        )
+        row = cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+    finally:
+        cursor.close()
+
+
 def source_table_count(conn, schema, table_name):
     cursor = conn.cursor()
     try:
