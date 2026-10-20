@@ -1,0 +1,13 @@
+{
+  "tables": [
+    {
+      "table_nm": "Entity",
+      "lq_key": "EntityId",
+      "is_active": true,
+      "select_cols": "",
+      "scd_type": 1,
+      "recon_type": 2,
+      "primary_key_cols": "EntityId"
+    }
+  ]
+}

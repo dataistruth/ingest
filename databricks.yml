@@ -1,0 +1,67 @@
+# ingest — JDBC Change Tracking ingest (on-demand job clusters)
+bundle:
+  name: ingest
+  engine: direct
+
+sync:
+  include:
+    - src/common/notebooks/**
+    - src/common/ops/**
+    - config/common/**
+
+include:
+  - resources/jobs/*.yml
+
+variables:
+  uc_catalog:
+    default: dev7
+  dest_schema_suffix:
+    default: "_raw"
+  ipac_metadata_schema:
+    default: ipac_metadata
+  grant_group:
+    default: ipacs_dev_team
+  job_tag:
+    default: ingest
+  heartbeat_job_alert_mail:
+    default: mukessingh@deloitte.com
+  pipeline_spark_version:
+    default: 15.4.x-scala2.12
+  poll_interval_sec:
+    default: "10"
+  max_database_concurrency:
+    default: "5"
+  max_table_concurrency:
+    default: "5"
+  jdbc_driver:
+    default: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      root_path: /Workspace/Shared/ingest/dev
+    variables:
+      uc_catalog: dev7
+      dest_schema_suffix: "_raw"
+      ipac_metadata_schema: ipac_metadata
+      grant_group: ipacs_dev_team
+      job_tag: ingest
+      poll_interval_sec: "10"
+      max_database_concurrency: "5"
+      max_table_concurrency: "5"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/ingest/prod
+    variables:
+      uc_catalog: ipac_tax_synch
+      dest_schema_suffix: "_raw"
+      ipac_metadata_schema: ipac_metadata
+      grant_group: ipacs_dev_team
+      job_tag: ingest
+      poll_interval_sec: "10"
+      max_database_concurrency: "5"
+      max_table_concurrency: "5"
