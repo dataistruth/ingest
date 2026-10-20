@@ -1,7 +1,16 @@
 """mssql-python connection. JDBC is not used here."""
 
+import importlib.util
+import subprocess
+import sys
+
 
 def connect_sql_server(connection_string: str):
+    if importlib.util.find_spec("mssql_python") is None:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-q", "mssql-python>=1.13.0"]
+        )
+        importlib.invalidate_caches()
     from mssql_python import connect
 
     return connect(connection_string)
