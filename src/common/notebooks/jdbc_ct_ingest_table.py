@@ -2,7 +2,11 @@
 # MAGIC %md
 # MAGIC # JDBC CT ingest one table
 # MAGIC
-# MAGIC Extract CHANGETABLE window for fixed `ct_head`, MERGE into Delta (SCD1).
+# MAGIC Spark **JDBC only here**: extract CHANGETABLE payload for a fixed `ct_head`,
+# MAGIC then MERGE into Delta (SCD1).
+# MAGIC
+# MAGIC Apply metrics / compare writes use **mssql-python** against
+# MAGIC `ipac_ingest_metadata`. Do not JDBC those lookups.
 
 # COMMAND ----------
 
@@ -13,7 +17,7 @@ dbutils.widgets.text("ct_head", "0")
 dbutils.widgets.text("table_nm", "")
 dbutils.widgets.text("watermark_before", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ipac_metadata_schema", "ipac_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
 dbutils.widgets.text("dest_schema_suffix", "_raw")
 
 group_id = dbutils.widgets.get("group_id").strip()
@@ -43,10 +47,10 @@ if src_root not in sys.path:
 
 from common.ops.jdbc_extract import build_ct_change_sql
 
-# TODO: resolve PK cols from common_tables.json / overrides
-# TODO: load JDBC secrets from client.json scope
-# TODO: read_ct_changes(...) then merge_ct_changes_scd1(...)
-# TODO: write table-level result keyed by group_id + ct_head + table
+# TODO: resolve PK cols from common_tables.json
+# TODO: login = get_sql_server_login(dbutils, load_sql_server_conn(config_dir))
+# TODO: JDBC: read_ct_changes(...) then create_auto_cdc_flow(...)
+# TODO: mssql-python: record_table_apply / record_table_compare
 
 sql = build_ct_change_sql("dbo", table_nm, ["Id"], watermark_before, ct_head)
 print("CT extract SQL (preview):")

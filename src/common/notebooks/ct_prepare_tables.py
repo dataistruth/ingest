@@ -37,7 +37,7 @@ tables = parse_changed_tables_json(changed_tables_json)
 # Normalize keys for for_each_task templates: {{input.table}}, {{input.watermark_before}}
 normalized = [
     {
-        "table": str(t.get("table") or t.get("table_nm") or ""),
+        "table": str(t.get("table") or t.get("table_name") or t.get("table_nm") or ""),
         "watermark_before": str(t.get("watermark_before", 0)),
         "pending_rows": str(t.get("pending_rows", 0)),
     }

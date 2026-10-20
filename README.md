@@ -2,6 +2,9 @@
 
 JDBC + SQL Server **Change Tracking (CT)** ingestion for iPAC.
 
+**Connections:** Spark JDBC is used only to extract change **payload** for MERGE.
+Discover, COUNT(*), watermarks, recon, and process_log use **mssql-python**.
+
 On-demand job clusters (not 24×7 LakeFlow pipeline clusters). Two-level fan-out:
 
 1. **Controller** discovers changed databases at a fixed `ct_head`
@@ -14,7 +17,7 @@ LakeFlow Connect is viable functionally, but each continuous pipeline needs a de
 ## Flow
 
 ```
-discover (10s / continuous, lease)
+discover (scheduled, max 1 concurrent run)
   snapshot ct_head per DB
   CHANGETABLE vs watermark → changed tables
         │
@@ -41,10 +44,11 @@ docs/                   Design notes
 
 ## Onboard a client
 
-1. Add a row to `config/common/client.json` (`is_active: true`)
-2. Optional: `config/common/client_overrides/<client_nm>.json`
+1. Add `{ "client_name", "is_active", "job_group": 1 }` to `config/common/client.json`
+2. Shared CT tables live in `config/common/common_tables.json`
 3. Ensure CT is enabled on PK tables and grants exist
-4. Deploy bundle and start `j_ipac_jdbc_ct_controller`
+4. SQL Server login is `config/common/sql_server_conn.json` (`scope_ipacs_audit` / `{env}_sql_db_username`, `{env}_sql_db_password`, `{env}_sql_server`)
+5. Deploy bundle and start `j_ipac_jdbc_ct_controller`
 
 ## Deploy
 
@@ -68,3 +72,29 @@ AND database_name + ct_head_version = group identity
 ```
 
 Do **not** gate calc on “job finished” or “last update time.”
+
+## SQL Server audit database (`ipac_ingest_metadata`)
+
+JDBC ingest does not use LakeFlow event logs. Its operational metadata is kept
+in the SQL Server OLTP database `ipac_ingest_metadata` and accessed with
+`mssql-python`. Unity Catalog contains only the Delta target tables.
+
+| Table | Purpose |
+|-------|---------|
+| `ingest_group` / `ingest_table_change` | Identify CT-changed tables at a frozen `ct_head` |
+| `ingest_table_apply` | Track MERGE I/U/D into Delta |
+| `ingest_table_compare` | Compare CT vs apply, and SQL `COUNT(*)` vs Delta |
+| `recon_ready` | Calc gate (PASS only) |
+| `ct_*_watermark` | Resume pointer; advance only after group PASS |
+
+See [docs/INGEST_METADATA.md](docs/INGEST_METADATA.md).
+
+Run the DDL in order:
+
+```text
+src/sql/sql_server/001_create_database.sql
+src/sql/sql_server/002_ingest_metadata_tables.sql
+src/sql/sql_server/003_ingest_metadata_views.sql
+src/sql/sql_server/004_ingest_metadata_procedures.sql
+src/sql/sql_server/005_grants.sql
+```

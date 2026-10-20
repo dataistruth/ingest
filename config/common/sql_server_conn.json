@@ -1,0 +1,8 @@
+{
+  "secret_scope": "scope_ipacs_audit",
+  "env": "dev",
+  "username_key": "{env}_sql_db_username",
+  "password_key": "{env}_sql_db_password",
+  "server_key": "{env}_sql_server",
+  "port": 1433
+}

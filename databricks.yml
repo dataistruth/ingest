@@ -7,6 +7,8 @@ sync:
   include:
     - src/common/notebooks/**
     - src/common/ops/**
+    - src/common/auto_cdc/**
+    - src/sql/**
     - config/common/**
 
 include:
@@ -17,8 +19,8 @@ variables:
     default: dev7
   dest_schema_suffix:
     default: "_raw"
-  ipac_metadata_schema:
-    default: ipac_metadata
+  ingest_metadata_database:
+    default: ipac_ingest_metadata
   grant_group:
     default: ipacs_dev_team
   job_tag:
@@ -45,7 +47,7 @@ targets:
     variables:
       uc_catalog: dev7
       dest_schema_suffix: "_raw"
-      ipac_metadata_schema: ipac_metadata
+      ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
       poll_interval_sec: "10"
@@ -59,7 +61,7 @@ targets:
     variables:
       uc_catalog: ipac_tax_synch
       dest_schema_suffix: "_raw"
-      ipac_metadata_schema: ipac_metadata
+      ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
       poll_interval_sec: "10"

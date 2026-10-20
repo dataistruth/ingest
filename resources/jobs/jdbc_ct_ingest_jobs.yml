@@ -38,11 +38,15 @@ resources:
           default: ${var.max_table_concurrency}
         - name: uc_catalog
           default: ${var.uc_catalog}
-        - name: ipac_metadata_schema
-          default: ${var.ipac_metadata_schema}
+        - name: ingest_metadata_database
+          default: ${var.ingest_metadata_database}
         - name: dest_schema_suffix
           default: ${var.dest_schema_suffix}
-      continuous:
+      # Continuous jobs cannot have depends_on / for_each (Jobs API 400).
+      # Paused schedule keeps the discover → fan-out DAG; unpause after deploy.
+      schedule:
+        quartz_cron_expression: "0 * * * * ?"
+        timezone_id: UTC
         pause_status: PAUSED
       job_clusters:
         - job_cluster_key: jdbc_controller
@@ -61,11 +65,11 @@ resources:
         - task_key: discover_ct_groups
           job_cluster_key: jdbc_controller
           notebook_task:
-            notebook_path: ${workspace.file_path}/src/common/notebooks/jdbc_ct_discover.py
+            notebook_path: ${workspace.file_path}/src/common/notebooks/ct_discover.py
             base_parameters:
               poll_interval_sec: "{{job.parameters.poll_interval_sec}}"
               uc_catalog: "{{job.parameters.uc_catalog}}"
-              ipac_metadata_schema: "{{job.parameters.ipac_metadata_schema}}"
+              ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
               dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
 
         - task_key: fanout_databases
@@ -87,7 +91,7 @@ resources:
                   changed_tables_json: "{{input.changed_tables_json}}"
                   max_table_concurrency: "{{job.parameters.max_table_concurrency}}"
                   uc_catalog: "{{job.parameters.uc_catalog}}"
-                  ipac_metadata_schema: "{{job.parameters.ipac_metadata_schema}}"
+                  ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
                   dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
 
     jdbc_ct_database_worker:
@@ -120,8 +124,8 @@ resources:
           default: ${var.max_table_concurrency}
         - name: uc_catalog
           default: ${var.uc_catalog}
-        - name: ipac_metadata_schema
-          default: ${var.ipac_metadata_schema}
+        - name: ingest_metadata_database
+          default: ${var.ingest_metadata_database}
         - name: dest_schema_suffix
           default: ${var.dest_schema_suffix}
       job_clusters:
@@ -143,7 +147,7 @@ resources:
         - task_key: prepare_table_fanout
           job_cluster_key: jdbc_worker
           notebook_task:
-            notebook_path: ${workspace.file_path}/src/common/notebooks/jdbc_ct_prepare_tables.py
+            notebook_path: ${workspace.file_path}/src/common/notebooks/ct_prepare_tables.py
             base_parameters:
               group_id: "{{job.parameters.group_id}}"
               client_nm: "{{job.parameters.client_nm}}"
@@ -170,7 +174,7 @@ resources:
                   table_nm: "{{input.table}}"
                   watermark_before: "{{input.watermark_before}}"
                   uc_catalog: "{{job.parameters.uc_catalog}}"
-                  ipac_metadata_schema: "{{job.parameters.ipac_metadata_schema}}"
+                  ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
                   dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
 
         - task_key: recon_database_group
@@ -178,7 +182,7 @@ resources:
             - task_key: fanout_tables
           job_cluster_key: jdbc_worker
           notebook_task:
-            notebook_path: ${workspace.file_path}/src/common/notebooks/jdbc_ct_recon_database.py
+            notebook_path: ${workspace.file_path}/src/common/notebooks/ct_recon_database.py
             base_parameters:
               group_id: "{{job.parameters.group_id}}"
               client_nm: "{{job.parameters.client_nm}}"
@@ -186,18 +190,18 @@ resources:
               ct_head: "{{job.parameters.ct_head}}"
               ct_watermark_before: "{{job.parameters.ct_watermark_before}}"
               uc_catalog: "{{job.parameters.uc_catalog}}"
-              ipac_metadata_schema: "{{job.parameters.ipac_metadata_schema}}"
+              ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
 
         - task_key: write_process_log
           depends_on:
             - task_key: recon_database_group
           job_cluster_key: jdbc_worker
           notebook_task:
-            notebook_path: ${workspace.file_path}/src/common/notebooks/jdbc_ct_process_log.py
+            notebook_path: ${workspace.file_path}/src/common/notebooks/ct_process_log.py
             base_parameters:
               group_id: "{{job.parameters.group_id}}"
               client_nm: "{{job.parameters.client_nm}}"
               database_name: "{{job.parameters.database_name}}"
               ct_head: "{{job.parameters.ct_head}}"
               uc_catalog: "{{job.parameters.uc_catalog}}"
-              ipac_metadata_schema: "{{job.parameters.ipac_metadata_schema}}"
+              ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"

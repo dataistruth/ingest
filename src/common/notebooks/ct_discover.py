@@ -1,23 +1,29 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # JDBC CT discover
+# MAGIC # CT discover
 # MAGIC
 # MAGIC Snapshot `ct_head` per active client DB, find tables with pending CT, emit
 # MAGIC `changed_databases` task value for for_each fan-out.
+# MAGIC
+# MAGIC **Connection:** mssql-python only (CT head, CHANGETABLE counts, watermarks).
+# MAGIC Spark JDBC is **not** used here.
 
 # COMMAND ----------
 
 dbutils.widgets.text("poll_interval_sec", "10")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ipac_metadata_schema", "ipac_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
 dbutils.widgets.text("dest_schema_suffix", "_raw")
 
 poll_interval_sec = int(dbutils.widgets.get("poll_interval_sec") or "10")
 uc_catalog = dbutils.widgets.get("uc_catalog").strip()
-ipac_metadata_schema = dbutils.widgets.get("ipac_metadata_schema").strip()
+ingest_metadata_database = dbutils.widgets.get("ingest_metadata_database").strip()
 dest_schema_suffix = dbutils.widgets.get("dest_schema_suffix").strip()
 
-print(f"uc_catalog={uc_catalog} metadata={ipac_metadata_schema} poll={poll_interval_sec}s")
+print(
+    f"uc_catalog={uc_catalog} "
+    f"sql_metadata_db={ingest_metadata_database} poll={poll_interval_sec}s"
+)
 
 # COMMAND ----------
 
@@ -33,10 +39,11 @@ if src_root not in sys.path:
 
 from common.ops.ct_discover import build_database_group, groups_to_task_value_json
 
-# TODO: load config/common/client.json + common_tables.json
-# TODO: for each active client, connect via JDBC / mssql-python
-# TODO: CHANGE_TRACKING_CURRENT_VERSION() once per DB → ct_head
-# TODO: CHANGETABLE vs ct_table_watermark → ChangedTable list
+# TODO: load_clients + load_tables from config/common
+# TODO: login = get_sql_server_login(dbutils, load_sql_server_conn(config_dir))
+# TODO: conn = connect_sql_server(conn_str)
+# TODO: fetch_ct_head(conn)
+# TODO: fetch_pending_ct_counts(...) then create_group(conn, ...)
 # Stub: empty fan-out until wired to SQL Server.
 
 groups = []

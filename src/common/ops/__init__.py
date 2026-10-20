@@ -1,1 +1,1 @@
-"""CT discovery, JDBC extract, recon helpers."""
+"""CT discovery (mssql-python), JDBC payload extract, ingest metadata, recon."""

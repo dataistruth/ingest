@@ -1,16 +1,12 @@
 [
   {
-    "client_nm": "example_client",
-    "desc": "Example JDBC CT ingest client — replace with real client",
-    "is_active": false,
-    "src_db_nm": "example_client",
-    "src_db_schema": "dbo",
-    "jdbc_url_secret_scope": "scope_ipacs_audit",
-    "jdbc_host_secret_key": "SQL_SERVER_HOST",
-    "jdbc_user_secret_key": "SQL_SERVER_AUDIT_USERNAME",
-    "jdbc_password_secret_key": "SQL_SERVER_AUDIT_PASSWORD",
-    "sql_port": 1433,
-    "client_size": "medium",
-    "priority": 100
+    "client_name": "ipc_2025_dev7_15347",
+    "is_active": true,
+    "job_group": 1
+  },
+  {
+    "client_name": "ipc_2025_dev7_15353",
+    "is_active": true,
+    "job_group": 1
   }
 ]

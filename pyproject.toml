@@ -3,7 +3,7 @@ name = "ingest"
 version = "0.1.0"
 description = "JDBC Change Tracking ingest with database/table fan-out and CT-head recon"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["mssql-python>=1.0.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
