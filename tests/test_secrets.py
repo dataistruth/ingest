@@ -43,3 +43,4 @@ def test_get_sql_server_login():
     assert login["password"] == "scope_ipacs_audit:dev_sql_db_password:value"
     assert login["server"] == "scope_ipacs_audit:dev_sql_server:value"
     assert login["port"] == 1433
+    assert conn["database_pattern"] == "iPC_2025_Dev7_{client_name}"

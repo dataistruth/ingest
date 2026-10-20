@@ -27,26 +27,131 @@ print(
 
 # COMMAND ----------
 
-import json
 import sys
-from pathlib import Path
 
 nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
 repo_root = "/Workspace" + nb_path.rsplit("/src/", 1)[0]
 src_root = f"{repo_root}/src"
+config_dir = f"{repo_root}/config/common"
 if src_root not in sys.path:
     sys.path.insert(0, src_root)
 
 from common.ops.ct_discover import build_database_group, groups_to_task_value_json
+from common.ops.ct_source import fetch_ct_head, fetch_pending_ct_counts, fetch_table_watermark
+from common.ops.ingest_metadata import create_group
+from common.ops.mssql import connect_sql_server, sql_server_odbc
+from common.ops.secrets import get_sql_server_login, load_sql_server_conn, sql_secret_keys
+from common.ops.tables import active_clients, client_database_name, load_tables
 
-# TODO: load_clients + load_tables from config/common
-# TODO: login = get_sql_server_login(dbutils, load_sql_server_conn(config_dir))
-# TODO: conn = connect_sql_server(conn_str)
-# TODO: fetch_ct_head(conn)
-# TODO: fetch_pending_ct_counts(...) then create_group(conn, ...)
-# Stub: empty fan-out until wired to SQL Server.
+sql_conn = load_sql_server_conn(config_dir)
+schema = sql_conn.get("source_schema") or "dbo"
+clients = active_clients(config_dir)
+tables = [t for t in load_tables(config_dir) if t.get("is_active", True)]
+keys = sql_secret_keys(sql_conn)
+
+print(f"env={sql_conn['env']} scope={sql_conn['secret_scope']}")
+print(f"secret keys: {keys['username']}, {keys['password']}, {keys['server']}")
+print(f"database_pattern={sql_conn.get('database_pattern')}")
+print(f"active clients: {len(clients)}")
+for client in clients:
+    print(f"  {client['client_name']} -> {client_database_name(sql_conn, client['client_name'])}")
+print(f"common tables: {len(tables)}")
+print(f"now looking for CT of {len(clients)} databases")
+
+login = get_sql_server_login(dbutils, sql_conn)
+print(f"secrets loaded; server={login['server']} port={login['port']}")
+
+meta_conn = None
+try:
+    meta_conn = connect_sql_server(sql_server_odbc(login, ingest_metadata_database))
+    print(f"connection succeeded: metadata database {ingest_metadata_database}")
+except Exception as exc:
+    print(f"metadata database {ingest_metadata_database} not reachable: {exc}")
 
 groups = []
+for client in clients:
+    client_name = client["client_name"]
+    database_name = client_database_name(sql_conn, client_name)
+    print(f"connecting to client DB {database_name} ...")
+    try:
+        src_conn = connect_sql_server(sql_server_odbc(login, database_name))
+    except Exception as exc:
+        print(f"connection failed: {database_name}: {exc}")
+        continue
+    print(f"connection succeeded: {database_name}")
+    try:
+        ct_head = fetch_ct_head(src_conn)
+        print(f"  ct_head={ct_head}")
+        if ct_head is None:
+            print(f"  change tracking not enabled on {database_name}; skip")
+            continue
+        changed = []
+        for table in tables:
+            table_nm = table["table_nm"]
+            watermark = 0
+            if meta_conn is not None:
+                try:
+                    watermark = fetch_table_watermark(
+                        meta_conn, database_name, schema, table_nm
+                    )
+                except Exception as exc:
+                    print(f"  watermark read failed {table_nm}: {exc}")
+                    watermark = 0
+            try:
+                pending = fetch_pending_ct_counts(
+                    src_conn, schema, table_nm, watermark, ct_head
+                )
+            except Exception as exc:
+                print(f"  CT lookup failed {schema}.{table_nm}: {exc}")
+                continue
+            if pending["pending_total"] > 0:
+                print(
+                    f"  {table_nm}: pending={pending['pending_total']} "
+                    f"(I={pending['pending_inserts']} U={pending['pending_updates']} "
+                    f"D={pending['pending_deletes']}) wm={watermark}..{ct_head}"
+                )
+                changed.append(pending)
+        print(f"  {database_name}: {len(changed)} tables with pending CT")
+        if not changed:
+            continue
+        group_id = None
+        if meta_conn is not None:
+            try:
+                group_id = create_group(
+                    meta_conn,
+                    client_name,
+                    database_name,
+                    schema,
+                    min(int(t["watermark_before"]) for t in changed),
+                    ct_head,
+                    changed,
+                )
+                print(f"  ingest_group {group_id}")
+            except Exception as exc:
+                print(f"  create_group skipped: {exc}")
+        group = build_database_group(
+            client_nm=client_name,
+            database_name=database_name,
+            ct_head=ct_head,
+            ct_watermark_before=min(int(t["watermark_before"]) for t in changed),
+            changed_tables=[
+                {
+                    "table": t["table_name"],
+                    "watermark_before": t["watermark_before"],
+                    "pending_rows": t["pending_total"],
+                }
+                for t in changed
+            ],
+        )
+        if group_id:
+            group["group_id"] = group_id
+        groups.append(group)
+    finally:
+        src_conn.close()
+
+if meta_conn is not None:
+    meta_conn.close()
+
 payload = groups_to_task_value_json(groups)
 print(f"changed database groups: {len(groups)}")
 print(payload)
