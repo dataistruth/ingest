@@ -34,6 +34,10 @@ def test_client_override_disables_extra_tables():
     assert "Entity" in active_names
     assert "ALLENTITY" not in active_names
     assert "DF_DEALS_ARCHIVE" not in active_names
+    assert "SM_StopCompWHCalculation" not in active_names
+    assert "AtRiskInput_Snapshot" not in [
+        t["table_nm"] for t in active_tables(CONFIG, "15447")
+    ]
 
 
 def test_load_clients_defaults_job_group():

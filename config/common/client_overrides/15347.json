@@ -1,6 +1,8 @@
 {
   "include_common": true,
-  "ignore": [],
+  "ignore": [
+    { "table_nm": "SM_StopCompWHCalculation", "is_active": false }
+  ],
   "extra": [
     { "table_nm": "ALLENTITY", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
     { "table_nm": "DF_DEALS_ARCHIVE", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
