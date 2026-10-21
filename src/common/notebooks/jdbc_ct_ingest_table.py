@@ -6,7 +6,7 @@
 # MAGIC then MERGE into Delta (SCD1).
 # MAGIC
 # MAGIC Apply metrics / compare writes use **mssql-python** against
-# MAGIC `ipac_metadata`. Do not JDBC those lookups.
+# MAGIC ingest metadata DB (job param `ingest_metadata_database`). Do not JDBC those lookups.
 
 # COMMAND ----------
 
@@ -17,7 +17,7 @@ dbutils.widgets.text("ct_head", "0")
 dbutils.widgets.text("table_nm", "")
 dbutils.widgets.text("watermark_before", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ingest_metadata_database", "ipac_metadata")
+dbutils.widgets.text("ingest_metadata_database", "")
 dbutils.widgets.text("dest_schema_suffix", "_raw")
 
 group_id = dbutils.widgets.get("group_id").strip()
@@ -27,12 +27,14 @@ ct_head = int(dbutils.widgets.get("ct_head") or "0")
 table_nm = dbutils.widgets.get("table_nm").strip()
 watermark_before = int(dbutils.widgets.get("watermark_before") or "0")
 uc_catalog = dbutils.widgets.get("uc_catalog").strip()
+ingest_metadata_database = dbutils.widgets.get("ingest_metadata_database").strip()
 dest_schema_suffix = dbutils.widgets.get("dest_schema_suffix").strip()
 
 target = f"{uc_catalog}.{client_nm}{dest_schema_suffix}.{table_nm}"
 print(
     f"group={group_id} db={database_name} table={table_nm} "
-    f"wm={watermark_before}..{ct_head} target={target}"
+    f"wm={watermark_before}..{ct_head} target={target} "
+    f"sql_metadata_db={ingest_metadata_database}"
 )
 
 # COMMAND ----------

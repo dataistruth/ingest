@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from common.ops.ingest_metadata import compare_counts
-from common.ops.mssql import connect_sql_server
+from common.ops.mssql import connect_sql_server, sql_server_odbc
 
 
 def test_compare_counts_type_2():
@@ -17,6 +17,16 @@ def test_compare_counts_type_1_skips_match():
 
 def test_connect_sql_server_is_function():
     assert callable(connect_sql_server)
+
+
+def test_sql_server_odbc_omits_driver():
+    conn = sql_server_odbc(
+        {"server": "sql.example", "port": 1433, "username": "u", "password": "p"},
+        "iPC_2025_Dev7_15347",
+    )
+    assert "Driver=" not in conn
+    assert "Server=sql.example,1433" in conn
+    assert "Database=iPC_2025_Dev7_15347" in conn
 
 
 def test_sql_server_ddl_set_exists():

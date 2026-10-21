@@ -12,7 +12,7 @@
 
 dbutils.widgets.text("poll_interval_sec", "10")
 dbutils.widgets.text("uc_catalog", "dev7")
-dbutils.widgets.text("ingest_metadata_database", "ipac_metadata")
+dbutils.widgets.text("ingest_metadata_database", "")
 dbutils.widgets.text("dest_schema_suffix", "_raw")
 
 poll_interval_sec = int(dbutils.widgets.get("poll_interval_sec") or "10")

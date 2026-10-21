@@ -8,7 +8,7 @@
 
   Watermarks advance only through dbo.usp_complete_ingest_group.
 */
-USE ipac_metadata;
+USE ipac_ingest_metadata;
 GO
 
 IF OBJECT_ID(N'dbo.ingest_group', N'U') IS NULL

@@ -7,6 +7,7 @@ import sys
 
 def connect_sql_server(connection_string: str):
     if importlib.util.find_spec("mssql_python") is None:
+        print("mssql_python not found; installing mssql-python>=1.13.0")
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-q", "mssql-python>=1.13.0"]
         )
@@ -17,8 +18,8 @@ def connect_sql_server(connection_string: str):
 
 
 def sql_server_odbc(login, database):
+    # mssql-python owns the driver; do not pass Driver=
     return (
-        f"Driver={{ODBC Driver 18 for SQL Server}};"
         f"Server={login['server']},{login['port']};"
         f"Database={database};"
         f"UID={login['username']};PWD={login['password']};"

@@ -1,7 +1,7 @@
 /*
   Operational and reconciliation views.
 */
-USE ipac_metadata;
+USE ipac_ingest_metadata;
 GO
 
 CREATE OR ALTER VIEW dbo.v_ingest_group_compare

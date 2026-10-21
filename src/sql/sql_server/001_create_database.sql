@@ -5,13 +5,13 @@
 USE master;
 GO
 
-IF DB_ID(N'ipac_metadata') IS NULL
+IF DB_ID(N'ipac_ingest_metadata') IS NULL
 BEGIN
-    CREATE DATABASE ipac_metadata;
+    CREATE DATABASE ipac_ingest_metadata;
 END;
 GO
 
-ALTER DATABASE ipac_metadata SET RECOVERY SIMPLE;
-ALTER DATABASE ipac_metadata SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE ipac_ingest_metadata SET RECOVERY SIMPLE;
+ALTER DATABASE ipac_ingest_metadata SET READ_COMMITTED_SNAPSHOT ON;
 GO
 

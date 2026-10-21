@@ -1,7 +1,7 @@
-# SQL Server `ipac_metadata`
+# SQL Server `ipac_ingest_metadata`
 
 LakeFlow recon reads pipeline event logs. The custom path has no LakeFlow
-event log. Operational metadata lives in SQL Server **`ipac_metadata`**.
+event log. Operational metadata lives in SQL Server **`ipac_ingest_metadata`**.
 
 **Drivers**
 

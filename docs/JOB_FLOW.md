@@ -41,7 +41,7 @@ fanout_databases   for_each  concurrency=5
 | Ingest payload (`jdbc_ct_ingest_table`) | Spark JDBC | Pull I/U/D row images into a DataFrame for MERGE |
 | Discover CT head + pending counts | mssql-python | Cheap scalars / aggregates, no Spark cluster I/O |
 | SQL `COUNT(*)` for recon_type 2 | mssql-python | Same |
-| Watermarks, apply, compare, recon_ready, process_log | mssql-python | OLTP in `ipac_metadata` |
+| Watermarks, apply, compare, recon_ready, process_log | mssql-python | OLTP in `ipac_ingest_metadata` |
 
 ## Concurrency (example: 5 DBs, 100 tables)
 
@@ -51,7 +51,7 @@ fanout_databases   for_each  concurrency=5
 | Tables per DB | 5 | YAML `for_each_task.concurrency` |
 | Global JDBC | start ~10 | Payload extract only; raise toward 25 after load test |
 
-## Metadata writes (SQL Server `ipac_metadata`)
+## Metadata writes (SQL Server `ipac_ingest_metadata`)
 
 1. Discover → `ingest_group` + `ingest_table_change` (identify)
 2. Each table MERGE → `ingest_table_apply` (track)
