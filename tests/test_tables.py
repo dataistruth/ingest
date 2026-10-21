@@ -20,9 +20,17 @@ def test_load_tables():
     assert "Entity" in names
     assert "Form926Package" in names
     assert "ALLENTITY" not in names
-    assert all("recon_type" in t for t in tables)
+    assert all("recon_type" not in t for t in tables)
     assert "YearlyByInvestment" in names
     assert names == list(dict.fromkeys(names))
+    by_name = {t["table_nm"]: t for t in tables}
+    assert by_name["Entity"]["lq_key"] == "EntityID"
+    assert by_name["Entity"]["primary_key_cols"] == "EntityID"
+    assert (
+        by_name["BoxJKLInput_Snapshot"]["lq_key"]
+        == "WorkflowID,K1PackageID,LineID,ReportingBasisID"
+    )
+    assert by_name["SM_StopCompWHCalculation"].get("lq_key") in ("", None)
 
 
 def test_client_override_disables_extra_tables():
