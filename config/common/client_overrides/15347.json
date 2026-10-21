@@ -1,0 +1,12 @@
+{
+  "include_common": true,
+  "ignore": [],
+  "extra": [
+    { "table_nm": "ALLENTITY", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
+    { "table_nm": "DF_DEALS_ARCHIVE", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
+    { "table_nm": "Entity_InactiveInvestments", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
+    { "table_nm": "FootNoteTrialBalanceAdjustments", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
+    { "table_nm": "K1LineItemGroup", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 },
+    { "table_nm": "VW_DF_Financial_Archive", "is_active": false, "lq_key": "", "select_cols": "", "scd_type": 1, "recon_type": 1 }
+  ]
+}

@@ -1,6 +1,34 @@
 """mssql-python CT head and pending I/U/D counts. Not payload extract."""
 
 
+def fetch_ct_status(conn, schema):
+    """Map object name -> {type_desc, ct_enabled} for user tables and views."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT o.name, o.type_desc,
+                   CASE WHEN ctt.object_id IS NULL THEN 0 ELSE 1 END
+            FROM sys.objects AS o
+            INNER JOIN sys.schemas AS s ON s.schema_id = o.schema_id
+            LEFT JOIN sys.change_tracking_tables AS ctt
+              ON ctt.object_id = o.object_id
+            WHERE s.name = ?
+              AND o.type IN ('U', 'V', 'SN');
+            """,
+            (schema,),
+        )
+        out = {}
+        for name, type_desc, ct_on in cursor.fetchall():
+            out[str(name)] = {
+                "type_desc": str(type_desc or ""),
+                "ct_enabled": bool(ct_on),
+            }
+        return out
+    finally:
+        cursor.close()
+
+
 def fetch_ct_head(conn):
     cursor = conn.cursor()
     try:

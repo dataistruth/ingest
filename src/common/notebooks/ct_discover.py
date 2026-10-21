@@ -13,15 +13,15 @@
 dbutils.widgets.text("poll_interval_sec", "10")
 dbutils.widgets.text("uc_catalog", "dev7")
 dbutils.widgets.text("ingest_metadata_database", "")
-dbutils.widgets.text("dest_schema_suffix", "_raw")
+dbutils.widgets.text("uc_schema_suffix", "")
 
 poll_interval_sec = int(dbutils.widgets.get("poll_interval_sec") or "10")
 uc_catalog = dbutils.widgets.get("uc_catalog").strip()
 ingest_metadata_database = dbutils.widgets.get("ingest_metadata_database").strip()
-dest_schema_suffix = dbutils.widgets.get("dest_schema_suffix").strip()
+uc_schema_suffix = dbutils.widgets.get("uc_schema_suffix").strip()
 
 print(
-    f"uc_catalog={uc_catalog} "
+    f"uc_catalog={uc_catalog} uc_schema_suffix={uc_schema_suffix} "
     f"sql_metadata_db={ingest_metadata_database} poll={poll_interval_sec}s"
 )
 
@@ -37,16 +37,21 @@ if src_root not in sys.path:
     sys.path.insert(0, src_root)
 
 from common.ops.ct_discover import build_database_group, groups_to_task_value_json
-from common.ops.ct_source import fetch_ct_head, fetch_pending_ct_counts, fetch_table_watermark
+from common.ops.ct_source import (
+    fetch_ct_head,
+    fetch_ct_status,
+    fetch_pending_ct_counts,
+    fetch_table_watermark,
+)
 from common.ops.ingest_metadata import create_group
 from common.ops.mssql import connect_sql_server, sql_server_odbc
 from common.ops.secrets import get_sql_server_login, load_sql_server_conn, sql_secret_keys
-from common.ops.tables import active_clients, client_database_name, load_tables
+from common.ops.tables import active_clients, active_tables, client_database_name, load_tables
 
 sql_conn = load_sql_server_conn(config_dir)
 schema = sql_conn.get("source_schema") or "dbo"
 clients = active_clients(config_dir)
-tables = [t for t in load_tables(config_dir) if t.get("is_active", True)]
+common_count = len(load_tables(config_dir))
 keys = sql_secret_keys(sql_conn)
 
 print(f"env={sql_conn['env']} scope={sql_conn['secret_scope']}")
@@ -55,7 +60,7 @@ print(f"database_pattern={sql_conn.get('database_pattern')}")
 print(f"active clients: {len(clients)}")
 for client in clients:
     print(f"  {client['client_name']} -> {client_database_name(sql_conn, client['client_name'])}")
-print(f"common tables: {len(tables)}")
+print(f"common tables: {common_count}")
 print(f"now looking for CT of {len(clients)} databases")
 
 login = get_sql_server_login(dbutils, sql_conn)
@@ -85,9 +90,25 @@ for client in clients:
         if ct_head is None:
             print(f"  change tracking not enabled on {database_name}; skip")
             continue
+        tables = active_tables(config_dir, client_name)
+        print(f"  active tables for {client_name}: {len(tables)}")
         changed = []
+        skipped_not_table = []
+        skipped_no_ct = []
+        skipped_missing = []
+        ct_status = fetch_ct_status(src_conn, schema)
         for table in tables:
             table_nm = table["table_nm"]
+            status = ct_status.get(table_nm)
+            if status is None:
+                skipped_missing.append(table_nm)
+                continue
+            if status["type_desc"] != "USER_TABLE":
+                skipped_not_table.append(table_nm)
+                continue
+            if not status["ct_enabled"]:
+                skipped_no_ct.append(table_nm)
+                continue
             watermark = 0
             if meta_conn is not None:
                 try:
@@ -111,6 +132,12 @@ for client in clients:
                     f"D={pending['pending_deletes']}) wm={watermark}..{ct_head}"
                 )
                 changed.append(pending)
+        if skipped_not_table:
+            print(f"  skip (view/synonym, CT not allowed): {', '.join(skipped_not_table)}")
+        if skipped_no_ct:
+            print(f"  skip (CT not enabled): {', '.join(skipped_no_ct)}")
+        if skipped_missing:
+            print(f"  skip (missing object): {', '.join(skipped_missing)}")
         print(f"  {database_name}: {len(changed)} tables with pending CT")
         if not changed:
             continue

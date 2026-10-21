@@ -18,7 +18,7 @@ dbutils.widgets.text("table_nm", "")
 dbutils.widgets.text("watermark_before", "0")
 dbutils.widgets.text("uc_catalog", "dev7")
 dbutils.widgets.text("ingest_metadata_database", "")
-dbutils.widgets.text("dest_schema_suffix", "_raw")
+dbutils.widgets.text("uc_schema_suffix", "")
 
 group_id = dbutils.widgets.get("group_id").strip()
 client_nm = dbutils.widgets.get("client_nm").strip()
@@ -28,9 +28,9 @@ table_nm = dbutils.widgets.get("table_nm").strip()
 watermark_before = int(dbutils.widgets.get("watermark_before") or "0")
 uc_catalog = dbutils.widgets.get("uc_catalog").strip()
 ingest_metadata_database = dbutils.widgets.get("ingest_metadata_database").strip()
-dest_schema_suffix = dbutils.widgets.get("dest_schema_suffix").strip()
+uc_schema_suffix = dbutils.widgets.get("uc_schema_suffix").strip()
 
-target = f"{uc_catalog}.{client_nm}{dest_schema_suffix}.{table_nm}"
+target = f"{uc_catalog}.{database_name.lower()}{uc_schema_suffix}.{table_nm}"
 print(
     f"group={group_id} db={database_name} table={table_nm} "
     f"wm={watermark_before}..{ct_head} target={target} "

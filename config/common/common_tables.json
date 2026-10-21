@@ -1,14 +1,6 @@
 {
   "tables": [
     {
-      "table_nm": "ALLENTITY",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
-    },
-    {
       "table_nm": "AssetClassOverrideImportData",
       "lq_key": "",
       "is_active": true,
@@ -193,14 +185,6 @@
       "recon_type": 1
     },
     {
-      "table_nm": "DF_DEALS_ARCHIVE",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
-    },
-    {
       "table_nm": "DF_EntityFeedTransactionMapping",
       "lq_key": "",
       "is_active": true,
@@ -234,14 +218,6 @@
     },
     {
       "table_nm": "Entity",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
-    },
-    {
-      "table_nm": "Entity_InactiveInvestments",
       "lq_key": "",
       "is_active": true,
       "select_cols": "",
@@ -625,14 +601,6 @@
       "recon_type": 1
     },
     {
-      "table_nm": "FootNoteTrialBalanceAdjustments",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
-    },
-    {
       "table_nm": "FootNoteTrialBalanceAdjustments_Snapshot",
       "lq_key": "",
       "is_active": true,
@@ -857,7 +825,7 @@
       "recon_type": 1
     },
     {
-      "table_nm": "K1LineItemGroup",
+      "table_nm": "K1Package",
       "lq_key": "",
       "is_active": true,
       "select_cols": "",
@@ -865,12 +833,12 @@
       "recon_type": 1
     },
     {
-      "table_nm": "K1Package",
+      "table_nm": "K1UBTI_SNAPSHOT",
       "lq_key": "",
       "is_active": true,
       "select_cols": "",
       "scd_type": 1,
-      "recon_type": 1
+      "recon_type": 2
     },
     {
       "table_nm": "K3MappedAllocableLines",
@@ -914,6 +882,14 @@
     },
     {
       "table_nm": "LookthroughReclassFNTieringBlocker_Snapshot",
+      "lq_key": "",
+      "is_active": true,
+      "select_cols": "",
+      "scd_type": 1,
+      "recon_type": 2
+    },
+    {
+      "table_nm": "M1Adjustments_Snapshot",
       "lq_key": "",
       "is_active": true,
       "select_cols": "",
@@ -1090,14 +1066,6 @@
     },
     {
       "table_nm": "PE_EntityByInvestment",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
-    },
-    {
-      "table_nm": "PE_ENU_DataList",
       "lq_key": "",
       "is_active": true,
       "select_cols": "",
@@ -1457,6 +1425,14 @@
       "recon_type": 2
     },
     {
+      "table_nm": "SM_StopCompWHCalculation",
+      "lq_key": "",
+      "is_active": true,
+      "select_cols": "",
+      "scd_type": 1,
+      "recon_type": 1
+    },
+    {
       "table_nm": "SM_WHWaiverExemptRules",
       "lq_key": "",
       "is_active": true,
@@ -1575,14 +1551,6 @@
       "select_cols": "",
       "scd_type": 1,
       "recon_type": 2
-    },
-    {
-      "table_nm": "VW_DF_Financial_Archive",
-      "lq_key": "",
-      "is_active": true,
-      "select_cols": "",
-      "scd_type": 1,
-      "recon_type": 1
     },
     {
       "table_nm": "Workflow",

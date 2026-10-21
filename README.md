@@ -46,9 +46,11 @@ docs/                   Design notes
 
 1. Add `{ "client_name", "is_active", "job_group": 1 }` to `config/common/client.json`
 2. Shared CT tables live in `config/common/common_tables.json`
-3. Ensure CT is enabled on PK tables and grants exist
-4. SQL Server login is `config/common/sql_server_conn.json` (`scope_ipacs_audit` / `{env}_sql_db_username`, `{env}_sql_db_password`, `{env}_sql_server`)
-5. Deploy bundle and start `j_ipac_jdbc_ct_controller`
+3. Optional `config/common/client_overrides/<client_name>.json` (`ignore` / `extra`, including disabled tables)
+4. Ensure CT is enabled on PK tables and grants exist
+5. SQL Server login is `config/common/sql_server_conn.json` (`scope_ipacs_audit` / `{env}_sql_db_username`, `{env}_sql_db_password`, `{env}_sql_server`)
+6. Run `src/common/notebooks/setup_uc_schemas.py` once (creates `{catalog}.{lower(database)}{uc_schema_suffix}`)
+7. Deploy bundle and start `j_ipac_jdbc_ct_controller`
 
 ## Deploy
 

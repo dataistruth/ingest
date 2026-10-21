@@ -17,8 +17,8 @@ include:
 variables:
   uc_catalog:
     default: dev7
-  dest_schema_suffix:
-    default: "_raw"
+  uc_schema_suffix:
+    default: "_custom"
   ingest_metadata_database:
     default: ipac_ingest_metadata
   grant_group:
@@ -46,7 +46,7 @@ targets:
       root_path: /Workspace/Shared/ingest/dev
     variables:
       uc_catalog: dev7
-      dest_schema_suffix: "_raw"
+      uc_schema_suffix: "_custom"
       ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
@@ -60,7 +60,7 @@ targets:
       root_path: /Workspace/Shared/ingest/prod
     variables:
       uc_catalog: ipac_tax_synch
-      dest_schema_suffix: "_raw"
+      uc_schema_suffix: "_custom"
       ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest

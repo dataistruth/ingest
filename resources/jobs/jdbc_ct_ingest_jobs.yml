@@ -40,8 +40,8 @@ resources:
           default: ${var.uc_catalog}
         - name: ingest_metadata_database
           default: ${var.ingest_metadata_database}
-        - name: dest_schema_suffix
-          default: ${var.dest_schema_suffix}
+        - name: uc_schema_suffix
+          default: ${var.uc_schema_suffix}
       # Continuous jobs cannot have depends_on / for_each (Jobs API 400).
       # Paused schedule keeps the discover → fan-out DAG; unpause after deploy.
       schedule:
@@ -70,7 +70,7 @@ resources:
               poll_interval_sec: "{{job.parameters.poll_interval_sec}}"
               uc_catalog: "{{job.parameters.uc_catalog}}"
               ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
-              dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
+              uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"
 
         - task_key: fanout_databases
           depends_on:
@@ -92,7 +92,7 @@ resources:
                   max_table_concurrency: "{{job.parameters.max_table_concurrency}}"
                   uc_catalog: "{{job.parameters.uc_catalog}}"
                   ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
-                  dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
+                  uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"
 
     jdbc_ct_database_worker:
       name: j_ipac_jdbc_ct_database_worker
@@ -126,8 +126,8 @@ resources:
           default: ${var.uc_catalog}
         - name: ingest_metadata_database
           default: ${var.ingest_metadata_database}
-        - name: dest_schema_suffix
-          default: ${var.dest_schema_suffix}
+        - name: uc_schema_suffix
+          default: ${var.uc_schema_suffix}
       job_clusters:
         - job_cluster_key: jdbc_worker
           new_cluster:
@@ -175,7 +175,7 @@ resources:
                   watermark_before: "{{input.watermark_before}}"
                   uc_catalog: "{{job.parameters.uc_catalog}}"
                   ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
-                  dest_schema_suffix: "{{job.parameters.dest_schema_suffix}}"
+                  uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"
 
         - task_key: recon_database_group
           depends_on:
