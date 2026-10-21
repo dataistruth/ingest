@@ -3,29 +3,6 @@
 import uuid
 
 
-def compare_counts(
-    recon_type,
-    source_change_rows,
-    ingest_change_rows,
-    sql_row_count=None,
-    delta_row_count=None,
-):
-    if recon_type == 1:
-        return {"status": "PASS", "change_match": None, "count_match": None}
-    change_match = source_change_rows == ingest_change_rows
-    count_match = None
-    if recon_type == 2:
-        count_match = sql_row_count == delta_row_count
-        ok = change_match and count_match
-    else:
-        ok = change_match
-    return {
-        "status": "PASS" if ok else "FAIL",
-        "change_match": change_match,
-        "count_match": count_match,
-    }
-
-
 def create_group(
     conn,
     client_nm,
@@ -113,6 +90,8 @@ def record_table_apply(
     deletes,
     status,
     target_table="",
+    duration_ms=None,
+    error_message=None,
 ):
     cursor = conn.cursor()
     try:
@@ -121,9 +100,9 @@ def record_table_apply(
             INSERT dbo.ingest_table_apply (
                 group_id, source_schema, table_name, target_table,
                 applied_inserts, applied_updates, applied_deletes,
-                apply_status, started_at, completed_at
+                apply_status, started_at, completed_at, duration_ms, error_message
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME(), SYSUTCDATETIME());
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME(), SYSUTCDATETIME(), ?, ?);
             """,
             (
                 group_id,
@@ -134,6 +113,8 @@ def record_table_apply(
                 int(updates),
                 int(deletes),
                 status,
+                duration_ms,
+                (error_message or "")[:4000] or None,
             ),
         )
         conn.commit()
@@ -149,8 +130,8 @@ def record_table_compare(
     group_id,
     source_schema,
     table_name,
-    recon_type,
     result,
+    recon_type=2,
 ):
     cursor = conn.cursor()
     try:
@@ -178,6 +159,75 @@ def record_table_compare(
                 result["status"],
                 result.get("message"),
             ),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def upsert_table_watermark(
+    conn,
+    database_name,
+    source_schema,
+    table_name,
+    client_nm,
+    last_version,
+    group_id=None,
+):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            MERGE dbo.ct_table_watermark WITH (HOLDLOCK) AS t
+            USING (SELECT ? AS database_name, ? AS source_schema, ? AS table_name) AS s
+              ON t.database_name = s.database_name
+             AND t.source_schema = s.source_schema
+             AND t.table_name = s.table_name
+            WHEN MATCHED THEN UPDATE SET
+                last_version = ?, last_group_id = ?, client_nm = ?,
+                updated_at = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (
+                database_name, source_schema, table_name, client_nm,
+                last_version, last_group_id
+            ) VALUES (s.database_name, s.source_schema, s.table_name, ?, ?, ?);
+            """,
+            (
+                database_name,
+                source_schema,
+                table_name,
+                int(last_version),
+                group_id,
+                client_nm,
+                client_nm,
+                int(last_version),
+                group_id,
+            ),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def set_group_status(conn, group_id, status, error_message=None):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE dbo.ingest_group
+            SET group_status = ?,
+                error_message = ?,
+                completed_at = CASE WHEN ? IN ('PASS', 'FAIL', 'CANCELLED')
+                                    THEN SYSUTCDATETIME() END,
+                updated_at = SYSUTCDATETIME()
+            WHERE group_id = ?;
+            """,
+            (status, (error_message or "")[:4000] or None, status, group_id),
         )
         conn.commit()
     except Exception:

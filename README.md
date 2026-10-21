@@ -3,34 +3,26 @@
 JDBC + SQL Server **Change Tracking (CT)** ingestion for iPAC.
 
 **Connections:** Spark JDBC is used only to extract change **payload** for MERGE.
-Discover, COUNT(*), watermarks, recon, and process_log use **mssql-python**.
+CT head, pending counts, COUNT(*), watermarks, and audit writes use **mssql-python**.
 
-On-demand job clusters (not 24×7 LakeFlow pipeline clusters). Two-level fan-out:
-
-1. **Controller** discovers changed databases at a fixed `ct_head`
-2. **Database worker** fans out tables (max concurrency **5**), merges to Delta, then publishes **one recon group** per `database + ct_head`
-
-## Why this repo
-
-LakeFlow Connect is viable functionally, but each continuous pipeline needs a dedicated job cluster. JDBC CT ingest keeps the same recon contract (`recon_id` + database + `ct_head`) while using **job clusters only when work exists**.
+One **continuous** job per client `job_group`. Each client is a parallel notebook task
+(`ct_client_ingest.py`) that loops forever on a shared job cluster: poll CT every
+`freq_run` seconds, then snapshot or SCD1-MERGE changed tables in `parallel_table_run`
+threads. No task hand-off, no fan-out.
 
 ## Flow
 
 ```
-discover (scheduled, max 1 concurrent run)
-  snapshot ct_head per DB
-  CHANGETABLE vs watermark → changed tables
-        │
-        ▼
-for_each database  (concurrency 5)
-        │
-        ▼
-for_each table     (concurrency 5)
-  JDBC extract + Delta MERGE
-        │
-        ▼
-recon_ready PASS → advance watermarks
+j_ipac_ingest_group_1 (continuous)
+  ├── ingest_15347 ─┐
+  └── ingest_15447 ─┴─ every freq_run s:
+                         ct_head (mssql-python)
+                         CHANGETABLE vs per-table watermark → changed tables
+                         ThreadPool(parallel_table_run): JDBC extract + Delta MERGE
+                         advance table watermark → recon counts (logged)
 ```
+
+See [docs/JOB_FLOW.md](docs/JOB_FLOW.md).
 
 ## Layout
 
@@ -38,7 +30,7 @@ recon_ready PASS → advance watermarks
 config/common/          client + table registry
 resources/jobs/         Databricks job YAML
 src/common/notebooks/   Job notebook tasks
-src/common/ops/         CT discover, JDBC extract, recon helpers
+src/common/ops/         ingest loop, CDC merge, recon, JDBC extract, metadata
 docs/                   Design notes
 ```
 
@@ -50,7 +42,8 @@ docs/                   Design notes
 4. Ensure CT is enabled on PK tables and grants exist
 5. SQL Server login is `config/common/sql_server_conn.json` (`scope_ipacs_audit` / `{env}_sql_db_username`, `{env}_sql_db_password`, `{env}_sql_server`)
 6. Run `src/common/notebooks/setup_uc_schemas.py` once (creates `{catalog}.{lower(database)}{uc_schema_suffix}`)
-7. Deploy bundle and start `j_ipac_jdbc_ct_controller`
+7. Add a task for the client to `resources/jobs/ingest_group_jobs.yml` (same `job_group`)
+8. Deploy bundle and unpause `j_ipac_ingest_group_1`
 
 ## Deploy
 
@@ -63,8 +56,7 @@ databricks bundle deploy -t dev
 
 | Job | Role |
 |-----|------|
-| `j_ipac_jdbc_ct_controller` | Discover CT groups; fan out 1 worker per changed DB |
-| `j_ipac_jdbc_ct_database_worker` | Fan out tables (max 5); recon; watermark advance |
+| `j_ipac_ingest_group_1` | Continuous; one `ct_client_ingest` task per client in job_group 1 |
 
 ## Recon contract (calc gate)
 
@@ -87,7 +79,7 @@ in the SQL Server OLTP database `ipac_ingest_metadata` and accessed with
 | `ingest_table_apply` | Track MERGE I/U/D into Delta |
 | `ingest_table_compare` | Compare CT vs apply, and SQL `COUNT(*)` vs Delta |
 | `recon_ready` | Calc gate (PASS only) |
-| `ct_*_watermark` | Resume pointer; advance only after group PASS |
+| `ct_table_watermark` | Per-table resume pointer; advanced after that table's MERGE |
 
 See [docs/INGEST_METADATA.md](docs/INGEST_METADATA.md).
 

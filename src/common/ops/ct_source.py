@@ -2,13 +2,15 @@
 
 
 def fetch_ct_status(conn, schema):
-    """Map object name -> {type_desc, ct_enabled} for user tables and views."""
+    """Map object name -> {type_desc, ct_enabled, min_valid_version}."""
     cursor = conn.cursor()
     try:
         cursor.execute(
             """
             SELECT o.name, o.type_desc,
-                   CASE WHEN ctt.object_id IS NULL THEN 0 ELSE 1 END
+                   CASE WHEN ctt.object_id IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN ctt.object_id IS NULL THEN NULL
+                        ELSE CHANGE_TRACKING_MIN_VALID_VERSION(o.object_id) END
             FROM sys.objects AS o
             INNER JOIN sys.schemas AS s ON s.schema_id = o.schema_id
             LEFT JOIN sys.change_tracking_tables AS ctt
@@ -19,10 +21,11 @@ def fetch_ct_status(conn, schema):
             (schema,),
         )
         out = {}
-        for name, type_desc, ct_on in cursor.fetchall():
+        for name, type_desc, ct_on, min_valid in cursor.fetchall():
             out[str(name)] = {
                 "type_desc": str(type_desc or ""),
                 "ct_enabled": bool(ct_on),
+                "min_valid_version": None if min_valid is None else int(min_valid),
             }
         return out
     finally:
@@ -74,19 +77,19 @@ def fetch_pending_ct_counts(conn, schema, table_name, watermark_before, ct_head)
     }
 
 
-def fetch_table_watermark(conn, database_name, schema, table_name):
+def fetch_table_watermarks(conn, database_name, schema):
+    """Map table name -> last_version from ipac_ingest_metadata."""
     cursor = conn.cursor()
     try:
         cursor.execute(
             """
-            SELECT last_version
+            SELECT table_name, last_version
             FROM dbo.ct_table_watermark
-            WHERE database_name = ? AND source_schema = ? AND table_name = ?;
+            WHERE database_name = ? AND source_schema = ?;
             """,
-            (database_name, schema, table_name),
+            (database_name, schema),
         )
-        row = cursor.fetchone()
-        return int(row[0]) if row and row[0] is not None else 0
+        return {str(name): int(version) for name, version in cursor.fetchall()}
     finally:
         cursor.close()
 

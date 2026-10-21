@@ -1,18 +1,19 @@
 from pathlib import Path
 
-from common.ops.ingest_metadata import compare_counts
-from common.ops.mssql import connect_sql_server, sql_server_odbc
+from common.ops.mssql import connect_sql_server, sql_server_jdbc_url, sql_server_odbc
+from common.ops.recon import compare_counts
 
 
-def test_compare_counts_type_2():
-    ok = compare_counts(2, 10, 10, 100, 100)
-    assert ok["status"] == "PASS"
-    bad = compare_counts(2, 10, 9, 100, 99)
-    assert bad["status"] == "FAIL"
+def test_compare_counts():
+    assert compare_counts(10, 10, 100, 100)["status"] == "PASS"
+    assert compare_counts(10, 9, 100, 99)["status"] == "FAIL"
+    assert compare_counts(10, 10, 100, 99)["count_match"] is False
+    assert compare_counts(10, 10)["status"] == "PASS"
 
 
-def test_compare_counts_type_1_skips_match():
-    assert compare_counts(1, 1, 2)["status"] == "PASS"
+def test_sql_server_jdbc_url():
+    url = sql_server_jdbc_url({"server": "sql.example", "port": 1433}, "db1")
+    assert url.startswith("jdbc:sqlserver://sql.example:1433;databaseName=db1")
 
 
 def test_connect_sql_server_is_function():

@@ -30,5 +30,5 @@ def sql_server_odbc(login, database):
 def sql_server_jdbc_url(login, database):
     return (
         f"jdbc:sqlserver://{login['server']}:{login['port']};"
-        f"databaseName={database}"
+        f"databaseName={database};encrypt=true;trustServerCertificate=true"
     )

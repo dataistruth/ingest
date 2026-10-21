@@ -7,7 +7,6 @@ sync:
   include:
     - src/common/notebooks/**
     - src/common/ops/**
-    - src/common/auto_cdc/**
     - src/sql/**
     - config/common/**
 
@@ -29,14 +28,12 @@ variables:
     default: mukessingh@deloitte.com
   pipeline_spark_version:
     default: 15.4.x-scala2.12
-  poll_interval_sec:
+  freq_run_sec:
+    description: Seconds between CT polls in ct_client_ingest
     default: "10"
-  max_database_concurrency:
+  parallel_table_run:
+    description: Tables merged in parallel per client notebook
     default: "5"
-  max_table_concurrency:
-    default: "5"
-  jdbc_driver:
-    default: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
 targets:
   dev:
@@ -50,9 +47,8 @@ targets:
       ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
-      poll_interval_sec: "10"
-      max_database_concurrency: "5"
-      max_table_concurrency: "5"
+      freq_run_sec: "10"
+      parallel_table_run: "5"
 
   prod:
     mode: production
@@ -64,6 +60,5 @@ targets:
       ingest_metadata_database: ipac_ingest_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
-      poll_interval_sec: "10"
-      max_database_concurrency: "5"
-      max_table_concurrency: "5"
+      freq_run_sec: "10"
+      parallel_table_run: "5"
