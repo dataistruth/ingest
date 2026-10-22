@@ -22,6 +22,10 @@ resources:
       parameters:
         - name: freq_run
           default: ${var.freq_run_sec}
+        - name: audit_freq
+          default: ${var.audit_freq_sec}
+        - name: full_recon
+          default: ${var.full_recon_sec}
         - name: parallel_table_run
           default: ${var.parallel_table_run}
         - name: uc_catalog
@@ -80,7 +84,8 @@ resources:
             notebook_path: ${workspace.file_path}/src/common/notebooks/ct_group_audit.py
             base_parameters:
               job_group: "1"
-              freq_run: "{{job.parameters.freq_run}}"
+              freq_run: "{{job.parameters.audit_freq}}"
+              full_recon: "{{job.parameters.full_recon}}"
               parallel_table_run: "{{job.parameters.parallel_table_run}}"
               uc_catalog: "{{job.parameters.uc_catalog}}"
               uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"

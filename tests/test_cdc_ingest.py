@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -50,9 +51,58 @@ def test_table_status_loaded_and_ready():
     ok = completeness.table_status(10, 1, True, 0, 100, 100)
     assert ok["loaded"] is True
     assert ok["ready"] is True
+    pending_count = completeness.table_status(10, 1, True, 0, None, None)
+    assert pending_count["loaded"] is True
+    assert pending_count["ready"] is False
+    assert "count pending" in pending_count["reason"]
     mismatch = completeness.table_status(10, 1, True, 0, 100, 99)
     assert mismatch["loaded"] is True
     assert mismatch["ready"] is False
+
+
+def test_due_full_recon_uses_3600_interval():
+    ctx = {"full_recon_sec": 3600, "last_full_recon_at": None}
+    assert completeness.due_full_recon(ctx, now=1.0) is True
+    ctx["last_full_recon_at"] = 100.0
+    assert completeness.due_full_recon(ctx, now=3700.0) is True
+    assert completeness.due_full_recon(ctx, now=3699.0) is False
+
+
+def test_check_one_table_cached_counts_do_not_scan_delta(monkeypatch):
+    monkeypatch.setattr(
+        completeness,
+        "fetch_pending_ct_counts",
+        lambda *a, **k: {"pending_total": 0},
+    )
+    counts = {"n": 0}
+
+    class _Table:
+        def count(self):
+            counts["n"] += 1
+            return 99
+
+    spark = SimpleNamespace(
+        catalog=SimpleNamespace(tableExists=lambda name: True),
+        table=lambda name: _Table(),
+    )
+    item = {"table_nm": "Entity", "target": "dev7.db.Entity"}
+    status = {"Entity": {"ct_enabled": True, "min_valid_version": 1}}
+    cached = completeness.check_one_table(
+        spark, None, threading.Lock(), "dbo", item, 20, {"Entity": 10},
+        status, {"Entity": {"sql_row_count": 5, "delta_row_count": 5}}, "cached",
+    )
+    assert cached["ready"] is True
+    assert cached["sql_row_count"] == 5
+    assert counts["n"] == 0
+    monkeypatch.setattr(completeness, "source_table_count", lambda *a, **k: 7)
+    monkeypatch.setattr(completeness, "upsert_table_counts", lambda *a, **k: None)
+    full = completeness.check_one_table(
+        spark, None, threading.Lock(), "dbo", item, 20, {"Entity": 10},
+        status, {}, "full",
+    )
+    assert full["sql_row_count"] == 7
+    assert full["delta_row_count"] == 99
+    assert counts["n"] == 1
 
 
 def test_no_lq_keeps_original_column_order():

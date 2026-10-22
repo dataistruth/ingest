@@ -31,6 +31,12 @@ variables:
   freq_run_sec:
     description: Seconds between CT polls in ct_client_ingest
     default: "10"
+  audit_freq_sec:
+    description: Seconds between lightweight completeness audits
+    default: "15"
+  full_recon_sec:
+    description: Seconds between full SQL vs Delta COUNT(*) passes
+    default: "3600"
   parallel_table_run:
     description: Tables merged in parallel per client notebook
     default: "5"
@@ -48,6 +54,8 @@ targets:
       grant_group: ipacs_dev_team
       job_tag: ingest
       freq_run_sec: "10"
+      audit_freq_sec: "15"
+      full_recon_sec: "3600"
       parallel_table_run: "5"
 
   prod:
@@ -61,4 +69,6 @@ targets:
       grant_group: ipacs_dev_team
       job_tag: ingest
       freq_run_sec: "10"
+      audit_freq_sec: "15"
+      full_recon_sec: "3600"
       parallel_table_run: "5"

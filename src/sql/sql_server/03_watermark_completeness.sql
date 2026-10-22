@@ -11,6 +11,9 @@ CREATE TABLE dbo.ct_table_watermark (
     client_nm           sysname          NULL,
     last_version        bigint           NOT NULL,
     last_group_id       uniqueidentifier NULL,
+    sql_row_count       bigint           NULL,
+    delta_row_count     bigint           NULL,
+    count_checked_at    datetime2(3)     NULL,
     updated_at          datetime2(3)     NOT NULL
         CONSTRAINT DF_ct_table_wm_updated DEFAULT SYSUTCDATETIME(),
     row_version         rowversion       NOT NULL,

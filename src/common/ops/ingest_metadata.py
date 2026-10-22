@@ -237,6 +237,7 @@ def upsert_table_watermark(
     last_version,
     group_id=None,
 ):
+    ensure_watermark_count_columns(conn)
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -248,6 +249,8 @@ def upsert_table_watermark(
              AND t.table_name = s.table_name
             WHEN MATCHED THEN UPDATE SET
                 last_version = ?, last_group_id = ?, client_nm = ?,
+                sql_row_count = NULL, delta_row_count = NULL,
+                count_checked_at = NULL,
                 updated_at = SYSUTCDATETIME()
             WHEN NOT MATCHED THEN INSERT (
                 database_name, source_schema, table_name, client_nm,
@@ -264,6 +267,69 @@ def upsert_table_watermark(
                 client_nm,
                 int(last_version),
                 group_id,
+            ),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def ensure_watermark_count_columns(conn):
+    statements = (
+        """
+        IF COL_LENGTH('dbo.ct_table_watermark', 'sql_row_count') IS NULL
+            ALTER TABLE dbo.ct_table_watermark ADD sql_row_count bigint NULL;
+        """,
+        """
+        IF COL_LENGTH('dbo.ct_table_watermark', 'delta_row_count') IS NULL
+            ALTER TABLE dbo.ct_table_watermark ADD delta_row_count bigint NULL;
+        """,
+        """
+        IF COL_LENGTH('dbo.ct_table_watermark', 'count_checked_at') IS NULL
+            ALTER TABLE dbo.ct_table_watermark ADD count_checked_at datetime2(3) NULL;
+        """,
+    )
+    cursor = conn.cursor()
+    try:
+        for sql in statements:
+            cursor.execute(sql)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def upsert_table_counts(
+    conn,
+    database_name,
+    source_schema,
+    table_name,
+    sql_row_count,
+    delta_row_count,
+):
+    ensure_watermark_count_columns(conn)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE dbo.ct_table_watermark
+            SET sql_row_count = ?,
+                delta_row_count = ?,
+                count_checked_at = SYSUTCDATETIME(),
+                updated_at = SYSUTCDATETIME()
+            WHERE database_name = ? AND source_schema = ? AND table_name = ?;
+            """,
+            (
+                sql_row_count,
+                delta_row_count,
+                database_name,
+                source_schema,
+                table_name,
             ),
         )
         conn.commit()

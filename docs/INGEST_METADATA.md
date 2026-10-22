@@ -26,6 +26,7 @@ Then run in order:
 2. `src/sql/sql_server/02_ingest_runtime.sql`
 3. `src/sql/sql_server/03_watermark_completeness.sql`
 4. `src/sql/sql_server/04_grants.sql` (replace `<KEEP_USER_ID>`)
+5. `src/sql/sql_server/05_watermark_count_cache.sql` (only if the database already existed)
 
 Source-database CT enablement (not metadata):
 `src/sql/source/enable_ct_on_tables.sql`
@@ -38,7 +39,7 @@ Source-database CT enablement (not metadata):
 | `ingest_table_change` | Identify CHANGETABLE I/U/D since the table watermark |
 | `ingest_table_apply` | Track SCD1 MERGE applied to Delta |
 | `ingest_table_compare` | Compare CT vs apply and SQL `COUNT(*)` vs Delta |
-| `ct_table_watermark` | Per-table last ingested CT version |
+| `ct_table_watermark` | Per-table last ingested CT version and last SQL/Delta counts |
 | `ingest_completeness` | Latest READY / NOT_READY per client (audit task) |
 | `process_log` | Cycle and audit operational log |
 

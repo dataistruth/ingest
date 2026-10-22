@@ -94,6 +94,31 @@ def fetch_table_watermarks(conn, database_name, schema):
         cursor.close()
 
 
+def fetch_table_count_cache(conn, database_name, schema):
+    """Map table name -> last SQL/Delta counts stored on the watermark row."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            SELECT table_name, sql_row_count, delta_row_count
+            FROM dbo.ct_table_watermark
+            WHERE database_name = ? AND source_schema = ?;
+            """,
+            (database_name, schema),
+        )
+        out = {}
+        for name, sql_count, delta_count in cursor.fetchall():
+            if sql_count is None and delta_count is None:
+                continue
+            out[str(name)] = {
+                "sql_row_count": None if sql_count is None else int(sql_count),
+                "delta_row_count": None if delta_count is None else int(delta_count),
+            }
+        return out
+    finally:
+        cursor.close()
+
+
 def source_table_count(conn, schema, table_name):
     cursor = conn.cursor()
     try:

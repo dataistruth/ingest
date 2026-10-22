@@ -7,19 +7,19 @@ CT head, pending counts, COUNT(*), watermarks, and audit writes use **mssql-pyth
 
 One **continuous** job per client `job_group`. Each client is a parallel notebook task
 (`ct_client_ingest.py`) that loops forever on a shared job cluster: poll CT every
-`freq_run` seconds, then snapshot or SCD1-MERGE changed tables in `parallel_table_run`
-threads. No task hand-off, no fan-out.
+`freq_run` seconds (default 10), then snapshot or SCD1-MERGE changed tables in
+`parallel_table_run` threads. Completeness audit is a separate interval
+(`audit_freq`, default 15s). No task hand-off, no fan-out.
 
 ## Flow
 
 ```
 j_ipac_ingest_group_1 (continuous)
-  ├── ingest_15347 ─┐
-  ├── ingest_15447 ─┼─ every freq_run s: CT poll + snapshot/MERGE
-  └── audit_group_1 ┘ every freq_run s: both clients
-                         ct_head, tables loaded, SQL vs Delta count,
-                         duration, READY / NOT_READY
-                         → dbo.ingest_completeness + process_log
+  ├── ingest_15347 ─┐ every freq_run s (10): CT poll + snapshot/MERGE
+  ├── ingest_15447 ─┤   then SQL vs Delta COUNT(*) for those tables only
+  └── audit_group_1 ┘ every audit_freq s (15): CT/watermark/pending
+                         full SQL vs Delta COUNT(*) every full_recon s (3600)
+                         READY / NOT_READY → dbo.ingest_completeness
 ```
 
 See [docs/JOB_FLOW.md](docs/JOB_FLOW.md).
@@ -148,7 +148,7 @@ Delta targets. Payload extract uses Spark JDBC.
 | `ingest_table_change` | group + table | Identify window: `watermark_before` → `ct_head`, pending I/U/D |
 | `ingest_table_apply` | group + table | MERGE/snapshot result: applied I/U/D, SUCCESS/FAIL, duration |
 | `ingest_table_compare` | group + table | CT pending vs applied; SQL `COUNT(*)` vs Delta `COUNT(*)` |
-| `ct_table_watermark` | source DB + schema + table | Last **successfully ingested** CT version (`last_version`) |
+| `ct_table_watermark` | source DB + schema + table | Last ingested CT version plus last SQL/Delta counts |
 | `ingest_completeness` | one row per client DB | Latest READY / NOT_READY from the audit task |
 | `process_log` | append-only | Cycle and audit messages |
 
@@ -157,7 +157,13 @@ Delta targets. Payload extract uses Spark JDBC.
 
 **Completeness (audit task, not ingest):** READY when every **active** table
 has a watermark, pending CT to the captured head is 0, the Delta table exists,
-and SQL count equals Delta count. Ignore-list tables are excluded.
+and last SQL count equals last Delta count. Ignore-list tables are excluded.
+
+The 15s audit does **not** `COUNT(*)` every Delta table. Counts are taken:
+
+1. Immediately after that table’s snapshot / MERGE
+2. For a full safety pass every `full_recon` seconds (3600)
+3. Otherwise from `ct_table_watermark.sql_row_count` / `delta_row_count`
 
 ```sql
 USE ipac_common_metadata;
@@ -175,5 +181,6 @@ src/sql/sql_server/01_create_database.sql
 src/sql/sql_server/02_ingest_runtime.sql
 src/sql/sql_server/03_watermark_completeness.sql
 src/sql/sql_server/04_grants.sql
+src/sql/sql_server/05_watermark_count_cache.sql   # only if 01–04 already ran
 ```
 

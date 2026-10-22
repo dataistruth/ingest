@@ -43,4 +43,5 @@ def test_sql_server_ddl_set_exists():
     assert "02_ingest_runtime.sql" in names
     assert "03_watermark_completeness.sql" in names
     assert "04_grants.sql" in names
+    assert "05_watermark_count_cache.sql" in names
     assert "004_ingest_metadata_procedures.sql" not in names

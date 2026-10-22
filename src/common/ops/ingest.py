@@ -18,6 +18,7 @@ from common.ops.ingest_metadata import (
     record_table_apply,
     record_table_compare,
     set_group_status,
+    upsert_table_counts,
     upsert_table_watermark,
 )
 from common.ops.jdbc_extract import read_ct_changes, read_table_snapshot
@@ -267,6 +268,17 @@ def run_table(ctx, item, ct_head, group_id):
             )
         except Exception as exc:
             result["recon"] = {"status": "FAIL", "message": f"recon error: {exc}"}
+        rec = result.get("recon") or {}
+        if rec.get("sql_row_count") is not None:
+            with ctx["meta_lock"]:
+                upsert_table_counts(
+                    ctx["meta_conn"],
+                    ctx["database_name"],
+                    ctx["schema"],
+                    table_nm,
+                    rec.get("sql_row_count"),
+                    rec.get("delta_row_count"),
+                )
 
     result["duration_ms"] = int((time.time() - started) * 1000)
     if group_id:

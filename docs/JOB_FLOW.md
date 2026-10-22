@@ -6,7 +6,7 @@
 j_ipac_ingest_group_1   (continuous, max_concurrent_runs=1, FAIR scheduler)
   ├── ingest_15347   ct_client_ingest.py  (client_name=15347)
   ├── ingest_15447   ct_client_ingest.py  (client_name=15447)
-  └── audit_group_1  ct_group_audit.py    (both clients, every freq_run)
+  └── audit_group_1  ct_group_audit.py    (both clients, every audit_freq)
         │   tasks run in parallel on one job cluster; no depends_on
         ▼
 while True:                                   # never stops unless cancelled
@@ -19,7 +19,7 @@ while True:                                   # never stops unless cancelled
     snapshot: JDBC SELECT * → if lq_key set, LQ columns first + CLUSTER BY; else no LQ
     cdc:      JDBC CHANGETABLE payload → SCD1 MERGE (delete on D)
     upsert ct_table_watermark = ct_head         # per table, after success
-    recon: CT rows vs applied, SQL COUNT(*) vs Delta count (logged, no gate)
+    recon: CT rows vs applied, SQL COUNT(*) vs Delta (that table only; cache counts)
   sleep(freq_run − elapsed)
 ```
 
@@ -52,7 +52,9 @@ while True:                                   # never stops unless cancelled
 
 | Variable | Default | Used as |
 |----------|---------|---------|
-| `freq_run_sec` | 10 | Notebook `freq_run`: seconds between polls |
+| `freq_run_sec` | 10 | Ingest notebook `freq_run`: seconds between CT polls |
+| `audit_freq_sec` | 15 | Audit notebook loop: lightweight CT/watermark check |
+| `full_recon_sec` | 3600 | Full SQL vs Delta `COUNT(*)` over loaded tables |
 | `parallel_table_run` | 5 | Notebook thread pool size per client |
 | `uc_catalog`, `uc_schema_suffix` | dev7, `_custom` | Target `{catalog}.{lower(db)}{suffix}.{table}` |
 | `ingest_metadata_database` | ipac_common_metadata | SQL Server audit DB |
@@ -78,11 +80,14 @@ if it fails, the table is reported FAIL and is re-applied next cycle (MERGE is i
 
 ## Completeness audit
 
-`audit_group_1` polls every `freq_run` seconds for every active client in the
-job group. A client is READY when every active table has a watermark, no pending
-CT changes up to the captured `ct_head`, a Delta target, and matching SQL vs
-Delta `COUNT(*)`. Latest status is upserted to `dbo.ingest_completeness`; each
-cycle also appends `dbo.process_log`.
+`audit_group_1` polls every `audit_freq` seconds (default 15, not the ingest
+10s poll). Each cycle is a lightweight CT/watermark/pending check. SQL vs
+Delta `COUNT(*)` runs on a table right after its snapshot/MERGE, and again
+for all **loaded** tables every `full_recon` seconds (default 3600). Between
+full passes the audit reuses counts cached on `ct_table_watermark`. A client
+is READY when every active table has a watermark, no pending CT to the captured
+`ct_head`, a Delta target, and matching SQL vs Delta counts. Latest status is
+upserted to `dbo.ingest_completeness`; each cycle also appends `dbo.process_log`.
 
 ## Reset
 
