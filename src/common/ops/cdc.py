@@ -2,6 +2,8 @@
 
 import uuid
 
+from common.ops.target import lq_first, quote_name
+
 # Liquid clustering accepts at most 4 columns.
 MAX_CLUSTER_COLS = 4
 CT_COLS = ("sys_change_operation", "sys_change_version")
@@ -15,15 +17,14 @@ def cluster_cols(keys):
     return list(keys)[:MAX_CLUSTER_COLS]
 
 
-def quote_name(name):
-    return ".".join(f"`{part}`" for part in str(name).split("."))
-
-
 def view_name(prefix):
     return f"_{prefix}_{uuid.uuid4().hex}"
 
 
-def create_table_from_df(spark, target, df, cluster_keys):
+def create_table_from_df(spark, target, df, cluster_keys, lq_keys=None):
+    lq_keys = list(lq_keys if lq_keys is not None else cluster_keys or [])
+    if lq_keys:
+        df = lq_first(df, lq_keys)
     view = view_name("snap")
     df.createOrReplaceTempView(view)
     cluster_sql = ""

@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from common.ops.mssql import connect_sql_server, sql_server_jdbc_url, sql_server_odbc
+from common.ops.mssql import (
+    connect_sql_server,
+    ensure_mssql_python,
+    sql_server_jdbc_url,
+    sql_server_odbc,
+)
 from common.ops.recon import compare_counts
 
 
@@ -18,6 +23,7 @@ def test_sql_server_jdbc_url():
 
 def test_connect_sql_server_is_function():
     assert callable(connect_sql_server)
+    assert callable(ensure_mssql_python)
 
 
 def test_sql_server_odbc_omits_driver():

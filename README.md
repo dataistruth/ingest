@@ -45,6 +45,21 @@ docs/                   Design notes
 7. Add a task for the client to `resources/jobs/ingest_group_jobs.yml` (same `job_group`)
 8. Deploy bundle and unpause `j_ipac_ingest_group_1`
 
+## Reset a client
+
+Stop the client's continuous task, then run
+`src/common/notebooks/reset_client_ingest.py`. It defaults to `dry_run=true`.
+For an actual reset, use `dry_run=false` and set `confirmation` to
+`RESET_<client_name>`. The notebook can drop all configured client target tables
+and delete only that source database's metadata and watermarks. Restarting the
+task then performs a clean snapshot.
+
+At initial target creation, configured LQ columns are moved to the beginning of
+the Delta schema so they stay within Delta's first 32 statistics columns. If
+`lq_key` is blank, the table is created with no liquid clustering. A missing
+configured LQ column fails with a short, explicit validation error. MERGE still
+requires `primary_key_cols`.
+
 ## Deploy
 
 ```bash

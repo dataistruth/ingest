@@ -13,6 +13,21 @@
 
 # COMMAND ----------
 
+import sys
+
+nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+repo_root = "/Workspace" + nb_path.rsplit("/src/", 1)[0]
+src_root = f"{repo_root}/src"
+config_dir = f"{repo_root}/config/common"
+if src_root not in sys.path:
+    sys.path.insert(0, src_root)
+
+from common.ops.mssql import ensure_mssql_python
+
+ensure_mssql_python()
+
+# COMMAND ----------
+
 dbutils.widgets.text("client_name", "")
 dbutils.widgets.text("freq_run", "10")
 dbutils.widgets.text("parallel_table_run", "5")
@@ -36,15 +51,6 @@ for name, value in {
         raise ValueError(f"{name} is required")
 
 # COMMAND ----------
-
-import sys
-
-nb_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-repo_root = "/Workspace" + nb_path.rsplit("/src/", 1)[0]
-src_root = f"{repo_root}/src"
-config_dir = f"{repo_root}/config/common"
-if src_root not in sys.path:
-    sys.path.insert(0, src_root)
 
 from common.ops.ingest import new_context, run_forever
 from common.ops.secrets import get_sql_server_login, load_sql_server_conn

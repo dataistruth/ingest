@@ -5,13 +5,19 @@ import subprocess
 import sys
 
 
+def ensure_mssql_python():
+    """Install mssql-python once if the cluster does not already have it."""
+    if importlib.util.find_spec("mssql_python") is not None:
+        return False
+    print("mssql_python not found; installing mssql-python>=1.13.0")
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "-q", "mssql-python>=1.13.0"]
+    )
+    importlib.invalidate_caches()
+    return True
+
+
 def connect_sql_server(connection_string: str):
-    if importlib.util.find_spec("mssql_python") is None:
-        print("mssql_python not found; installing mssql-python>=1.13.0")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", "mssql-python>=1.13.0"]
-        )
-        importlib.invalidate_caches()
     from mssql_python import connect
 
     return connect(connection_string)

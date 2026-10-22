@@ -126,18 +126,20 @@ def plan_tables(ctx, ct_head):
         if not info["ct_enabled"]:
             skip_once(ctx, table_nm, "change tracking disabled")
             continue
-        keys = cdc.split_keys(table.get("primary_key_cols") or table.get("lq_key"))
+        keys = cdc.split_keys(table.get("primary_key_cols"))
         if not keys:
-            skip_once(ctx, table_nm, "no primary_key_cols / lq_key")
+            skip_once(ctx, table_nm, "no primary_key_cols")
             continue
 
         target = uc_table_path(
             ctx["uc_catalog"], ctx["database_name"], ctx["uc_schema_suffix"], table_nm
         )
-        cluster = cdc.cluster_cols(cdc.split_keys(table.get("lq_key")) or keys)
+        lq_keys = cdc.split_keys(table.get("lq_key"))
+        cluster = cdc.cluster_cols(lq_keys)
         item = {
             "table_nm": table_nm,
             "keys": keys,
+            "lq_keys": lq_keys,
             "cluster": cluster,
             "target": target,
         }
@@ -198,7 +200,13 @@ def apply_snapshot(ctx, item):
         spark, ctx["jdbc_url"], login["username"], login["password"],
         ctx["schema"], item["table_nm"],
     )
-    cdc.create_table_from_df(spark, item["target"], df, item["cluster"])
+    cdc.create_table_from_df(
+        spark,
+        item["target"],
+        df,
+        item["cluster"],
+        item["lq_keys"],
+    )
     ctx["known_targets"].add(item["target"])
     rows = spark.table(item["target"]).count()
     return {"I": rows, "U": 0, "D": 0}

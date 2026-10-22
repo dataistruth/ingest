@@ -97,17 +97,20 @@ def record_table_apply(
     try:
         cursor.execute(
             """
-            INSERT dbo.ingest_table_apply (
-                group_id, source_schema, table_name, target_table,
-                applied_inserts, applied_updates, applied_deletes,
-                apply_status, started_at, completed_at, duration_ms, error_message
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME(), SYSUTCDATETIME(), ?, ?);
+            UPDATE dbo.ingest_table_apply
+            SET target_table = ?,
+                applied_inserts = ?,
+                applied_updates = ?,
+                applied_deletes = ?,
+                apply_status = ?,
+                started_at = SYSUTCDATETIME(),
+                completed_at = SYSUTCDATETIME(),
+                duration_ms = ?,
+                error_message = ?,
+                recorded_at = SYSUTCDATETIME()
+            WHERE group_id = ? AND source_schema = ? AND table_name = ?;
             """,
             (
-                group_id,
-                source_schema,
-                table_name,
                 target_table or None,
                 int(inserts),
                 int(updates),
@@ -115,8 +118,34 @@ def record_table_apply(
                 status,
                 duration_ms,
                 (error_message or "")[:4000] or None,
+                group_id,
+                source_schema,
+                table_name,
             ),
         )
+        if cursor.rowcount == 0:
+            cursor.execute(
+                """
+                INSERT dbo.ingest_table_apply (
+                    group_id, source_schema, table_name, target_table,
+                    applied_inserts, applied_updates, applied_deletes,
+                    apply_status, started_at, completed_at, duration_ms, error_message
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, SYSUTCDATETIME(), SYSUTCDATETIME(), ?, ?);
+                """,
+                (
+                    group_id,
+                    source_schema,
+                    table_name,
+                    target_table or None,
+                    int(inserts),
+                    int(updates),
+                    int(deletes),
+                    status,
+                    duration_ms,
+                    (error_message or "")[:4000] or None,
+                ),
+            )
         conn.commit()
     except Exception:
         conn.rollback()
@@ -137,18 +166,20 @@ def record_table_compare(
     try:
         cursor.execute(
             """
-            INSERT dbo.ingest_table_compare (
-                group_id, source_schema, table_name, recon_type,
-                source_change_rows, ingest_change_rows, change_match,
-                sql_row_count, delta_row_count, count_match,
-                compare_status, compare_message
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            UPDATE dbo.ingest_table_compare
+            SET recon_type = ?,
+                source_change_rows = ?,
+                ingest_change_rows = ?,
+                change_match = ?,
+                sql_row_count = ?,
+                delta_row_count = ?,
+                count_match = ?,
+                compare_status = ?,
+                compare_message = ?,
+                compared_at = SYSUTCDATETIME()
+            WHERE group_id = ? AND source_schema = ? AND table_name = ?;
             """,
             (
-                group_id,
-                source_schema,
-                table_name,
                 int(recon_type),
                 result.get("source_change_rows"),
                 result.get("ingest_change_rows"),
@@ -158,8 +189,37 @@ def record_table_compare(
                 result.get("count_match"),
                 result["status"],
                 result.get("message"),
+                group_id,
+                source_schema,
+                table_name,
             ),
         )
+        if cursor.rowcount == 0:
+            cursor.execute(
+                """
+                INSERT dbo.ingest_table_compare (
+                    group_id, source_schema, table_name, recon_type,
+                    source_change_rows, ingest_change_rows, change_match,
+                    sql_row_count, delta_row_count, count_match,
+                    compare_status, compare_message
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    group_id,
+                    source_schema,
+                    table_name,
+                    int(recon_type),
+                    result.get("source_change_rows"),
+                    result.get("ingest_change_rows"),
+                    result.get("change_match"),
+                    result.get("sql_row_count"),
+                    result.get("delta_row_count"),
+                    result.get("count_match"),
+                    result["status"],
+                    result.get("message"),
+                ),
+            )
         conn.commit()
     except Exception:
         conn.rollback()

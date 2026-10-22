@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from common.ops import cdc, ingest
 from common.ops.jdbc_extract import build_ct_change_sql
+from common.ops.target import ordered_columns
 
 CONFIG_DIR = Path(__file__).parents[1] / "config" / "common"
 
@@ -26,6 +27,31 @@ def test_split_and_cluster_keys():
 def test_quote_name_and_unique_views():
     assert cdc.quote_name("dev7.db_custom.Entity") == "`dev7`.`db_custom`.`Entity`"
     assert cdc.view_name("cdc_src") != cdc.view_name("cdc_src")
+
+
+def test_lq_columns_are_moved_first_case_insensitively():
+    columns = ["Other1", "lq_two", "Other2", "LQ_ONE"]
+    assert ordered_columns(columns, ["lq_one", "LQ_TWO"]) == [
+        "LQ_ONE",
+        "lq_two",
+        "Other1",
+        "Other2",
+    ]
+
+
+def test_no_lq_keeps_original_column_order():
+    columns = ["ID", "Value", "Other"]
+    assert ordered_columns(columns, []) == columns
+    assert ordered_columns(columns, None) == columns
+
+
+def test_missing_lq_column_fails_clearly():
+    try:
+        ordered_columns(["ID", "Value"], ["PK_ID"])
+    except ValueError as exc:
+        assert str(exc) == "configured LQ column(s) not found in source: PK_ID"
+    else:
+        raise AssertionError("missing LQ column must fail")
 
 
 def _spark(existing):
@@ -54,12 +80,13 @@ def test_plan_tables_snapshot_cdc_and_skip(monkeypatch):
         {"table_nm": "NewT", "primary_key_cols": "ID", "lq_key": "ID", "is_active": True},
         {"table_nm": "OldT", "primary_key_cols": "ID", "lq_key": "ID", "is_active": True},
         {"table_nm": "Quiet", "primary_key_cols": "ID", "lq_key": "ID", "is_active": True},
-        {"table_nm": "NoKey", "primary_key_cols": "", "lq_key": "", "is_active": True},
+        {"table_nm": "NoKey", "primary_key_cols": "", "lq_key": "ID", "is_active": True},
+        {"table_nm": "NoLq", "primary_key_cols": "ID", "lq_key": "", "is_active": True},
         {"table_nm": "AView", "primary_key_cols": "ID", "lq_key": "ID", "is_active": True},
     ]
     status = {
         name: {"type_desc": "USER_TABLE", "ct_enabled": True, "min_valid_version": 10}
-        for name in ("NewT", "OldT", "Quiet", "NoKey")
+        for name in ("NewT", "OldT", "Quiet", "NoKey", "NoLq")
     }
     status["AView"] = {"type_desc": "VIEW", "ct_enabled": False, "min_valid_version": None}
     monkeypatch.setattr(ingest, "active_tables", lambda *a: tables)
@@ -81,10 +108,13 @@ def test_plan_tables_snapshot_cdc_and_skip(monkeypatch):
     ctx = _ctx(targets)
     work = {w["table_nm"]: w for w in ingest.plan_tables(ctx, 100)}
 
-    assert set(work) == {"NewT", "OldT"}
+    assert set(work) == {"NewT", "OldT", "NoLq"}
     assert work["NewT"]["mode"] == "snapshot"
     assert work["OldT"]["mode"] == "cdc"
     assert work["OldT"]["watermark_before"] == 50
+    assert work["NoLq"]["mode"] == "snapshot"
+    assert work["NoLq"]["lq_keys"] == []
+    assert work["NoLq"]["cluster"] == []
     assert ctx["probed_head"]["Quiet"] == 100
     assert {"NoKey", "AView"} <= ctx["skip_logged"]
 

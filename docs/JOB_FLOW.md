@@ -15,7 +15,7 @@ while True:                                   # never stops unless cancelled
     no watermark / watermark < CT min valid / target missing → snapshot
     else pending = CHANGETABLE(watermark .. ct_head)  → cdc if pending > 0
   ThreadPool(parallel_table_run):
-    snapshot: JDBC SELECT * → CREATE OR REPLACE TABLE … CLUSTER BY (lq_key/PK)
+    snapshot: JDBC SELECT * → if lq_key set, LQ columns first + CLUSTER BY; else no LQ
     cdc:      JDBC CHANGETABLE payload → SCD1 MERGE (delete on D)
     upsert ct_table_watermark = ct_head         # per table, after success
     recon: CT rows vs applied, SQL COUNT(*) vs Delta count (logged, no gate)
@@ -33,6 +33,9 @@ while True:                                   # never stops unless cancelled
 | `ops/jdbc_extract.py` | Spark JDBC payload reads (CT changes, snapshot) |
 | `ops/ct_source.py` | mssql-python CT head, CT status, pending counts, watermarks |
 | `ops/ingest_metadata.py` | mssql-python writes to `ipac_ingest_metadata` |
+| `ops/target.py` | LQ-first target schema and configured target deletion |
+| `ops/reset.py` | Transactional per-client metadata reset |
+| `notebooks/reset_client_ingest.py` | Guarded dry-run/reset process |
 
 ## Connections
 
@@ -69,3 +72,11 @@ if it fails, the table is reported FAIL and is re-applied next cycle (MERGE is i
    CT replays over the snapshot are idempotent.
 4. Cycle errors are logged, connections reopened next cycle; the loop never exits.
 5. Group membership is hard-coded per job: tasks must match `client.json` `job_group`.
+
+## Reset
+
+Stop the continuous client task before running `reset_client_ingest.py`. The
+notebook is dry-run by default and requires `RESET_<client_name>` confirmation
+to execute. A full reset drops configured target tables first, then transactionally
+deletes that database's watermarks and audit groups. Restarting ingest triggers
+a clean snapshot.
