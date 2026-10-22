@@ -47,11 +47,18 @@ config_dir = f"{repo_root}/config/common"
 if src_root not in sys.path:
     sys.path.insert(0, src_root)
 
+import importlib
+
+from common.ops import reset as reset_mod
+from common.ops import target as target_mod
 from common.ops.mssql import connect_sql_server, ensure_mssql_python, sql_server_odbc
-from common.ops.reset import reset_client_metadata
 from common.ops.secrets import get_sql_server_login, load_sql_server_conn
 from common.ops.tables import client_database_name, load_tables, uc_table_path
-from common.ops.target import drop_target_tables
+
+importlib.reload(reset_mod)
+importlib.reload(target_mod)
+reset_client_metadata = reset_mod.reset_client_metadata
+drop_target_tables = target_mod.drop_target_tables
 
 ensure_mssql_python()
 sql_conn = load_sql_server_conn(config_dir)
@@ -85,14 +92,14 @@ if confirmation != expected:
 
 if drop_targets:
     print("Unity Catalog target reset SQL:")
-    dropped = drop_target_tables(spark, targets, verbose=True)
+    dropped = drop_target_tables(spark, targets)
     print(f"dropped {len(dropped)} configured target tables")
 
 if reset_metadata:
     print("SQL Server metadata reset SQL:")
     conn = connect_sql_server(sql_server_odbc(login, ingest_metadata_database))
     try:
-        deleted = reset_client_metadata(conn, database_name, verbose=True)
+        deleted = reset_client_metadata(conn, database_name)
     finally:
         conn.close()
     print(f"metadata reset: {deleted}")

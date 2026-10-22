@@ -9,8 +9,8 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("uc_catalog", "")
-dbutils.widgets.text("uc_schema_suffix", "")
+dbutils.widgets.text("uc_catalog", "dev7")
+dbutils.widgets.text("uc_schema_suffix", "_custom")
 
 uc_catalog = dbutils.widgets.get("uc_catalog").strip()
 uc_schema_suffix = dbutils.widgets.get("uc_schema_suffix").strip()
