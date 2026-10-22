@@ -8,10 +8,11 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("client_name", "")
-dbutils.widgets.text("uc_catalog", "")
-dbutils.widgets.text("uc_schema_suffix", "")
-dbutils.widgets.text("ingest_metadata_database", "")
+dbutils.widgets.removeAll()
+dbutils.widgets.text("client_name", "15347")
+dbutils.widgets.text("uc_catalog", "dev7")
+dbutils.widgets.text("uc_schema_suffix", "_custom")
+dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
 dbutils.widgets.dropdown("drop_targets", "true", ["true", "false"])
 dbutils.widgets.dropdown("reset_metadata", "true", ["true", "false"])
 dbutils.widgets.dropdown("dry_run", "true", ["true", "false"])
