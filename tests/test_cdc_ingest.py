@@ -1,7 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from common.ops import cdc, ingest
+from common.ops import cdc, completeness, ingest
 from common.ops.jdbc_extract import build_ct_change_sql
 from common.ops.target import ordered_columns
 
@@ -37,6 +37,22 @@ def test_lq_columns_are_moved_first_case_insensitively():
         "Other1",
         "Other2",
     ]
+
+
+def test_table_status_loaded_and_ready():
+    missing = completeness.table_status(None, 1, True, 0, None, None)
+    assert missing["loaded"] is False
+    assert missing["ready"] is False
+    pending = completeness.table_status(10, 1, True, 5, None, None)
+    assert pending["loaded"] is False
+    stale = completeness.table_status(5, 10, True, 0, 1, 1)
+    assert stale["loaded"] is False
+    ok = completeness.table_status(10, 1, True, 0, 100, 100)
+    assert ok["loaded"] is True
+    assert ok["ready"] is True
+    mismatch = completeness.table_status(10, 1, True, 0, 100, 99)
+    assert mismatch["loaded"] is True
+    assert mismatch["ready"] is False
 
 
 def test_no_lq_keeps_original_column_order():

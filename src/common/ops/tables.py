@@ -21,8 +21,12 @@ def load_clients(config_dir):
     ]
 
 
-def active_clients(config_dir):
-    return [c for c in load_clients(config_dir) if c["is_active"]]
+def active_clients(config_dir, job_group=None):
+    clients = [c for c in load_clients(config_dir) if c["is_active"]]
+    if job_group is None:
+        return clients
+    group = int(job_group)
+    return [c for c in clients if c["job_group"] == group]
 
 
 def client_database_name(conn, client_name):

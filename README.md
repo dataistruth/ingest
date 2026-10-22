@@ -15,11 +15,11 @@ threads. No task hand-off, no fan-out.
 ```
 j_ipac_ingest_group_1 (continuous)
   ├── ingest_15347 ─┐
-  └── ingest_15447 ─┴─ every freq_run s:
-                         ct_head (mssql-python)
-                         CHANGETABLE vs per-table watermark → changed tables
-                         ThreadPool(parallel_table_run): JDBC extract + Delta MERGE
-                         advance table watermark → recon counts (logged)
+  ├── ingest_15447 ─┼─ every freq_run s: CT poll + snapshot/MERGE
+  └── audit_group_1 ┘ every freq_run s: both clients
+                         ct_head, tables loaded, SQL vs Delta count,
+                         duration, READY / NOT_READY
+                         → dbo.ingest_completeness + process_log
 ```
 
 See [docs/JOB_FLOW.md](docs/JOB_FLOW.md).
@@ -71,7 +71,7 @@ databricks bundle deploy -t dev
 
 | Job | Role |
 |-----|------|
-| `j_ipac_ingest_group_1` | Continuous; one `ct_client_ingest` task per client in job_group 1 |
+| `j_ipac_ingest_group_1` | Continuous; one ingest task per client plus one group audit task |
 
 ## Recon contract (calc gate)
 

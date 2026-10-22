@@ -41,3 +41,4 @@ def test_sql_server_ddl_set_exists():
     names = sorted(path.name for path in root.glob("*.sql"))
     assert "001_create_database.sql" in names
     assert "002_ingest_metadata_tables.sql" in names
+    assert "007_ingest_completeness.sql" in names

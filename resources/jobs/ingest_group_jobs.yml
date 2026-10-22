@@ -73,3 +73,15 @@ resources:
               uc_catalog: "{{job.parameters.uc_catalog}}"
               uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"
               ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"
+
+        - task_key: audit_group_1
+          job_cluster_key: ingest_group_1
+          notebook_task:
+            notebook_path: ${workspace.file_path}/src/common/notebooks/ct_group_audit.py
+            base_parameters:
+              job_group: "1"
+              freq_run: "{{job.parameters.freq_run}}"
+              parallel_table_run: "{{job.parameters.parallel_table_run}}"
+              uc_catalog: "{{job.parameters.uc_catalog}}"
+              uc_schema_suffix: "{{job.parameters.uc_schema_suffix}}"
+              ingest_metadata_database: "{{job.parameters.ingest_metadata_database}}"

@@ -75,6 +75,8 @@ def test_client_database_name_from_pattern():
     conn = load_sql_server_conn(CONFIG)
     assert client_database_name(conn, "15347") == "iPC_2025_Dev7_15347"
     assert [c["client_name"] for c in active_clients(CONFIG)] == ["15347", "15447"]
+    assert [c["client_name"] for c in active_clients(CONFIG, 1)] == ["15347", "15447"]
+    assert active_clients(CONFIG, 9) == []
 
 
 def test_uc_schema_is_lower_database_plus_suffix():

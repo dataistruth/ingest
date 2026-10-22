@@ -5,7 +5,8 @@
 ```
 j_ipac_ingest_group_1   (continuous, max_concurrent_runs=1, FAIR scheduler)
   ├── ingest_15347   ct_client_ingest.py  (client_name=15347)
-  └── ingest_15447   ct_client_ingest.py  (client_name=15447)
+  ├── ingest_15447   ct_client_ingest.py  (client_name=15447)
+  └── audit_group_1  ct_group_audit.py    (both clients, every freq_run)
         │   tasks run in parallel on one job cluster; no depends_on
         ▼
 while True:                                   # never stops unless cancelled
@@ -36,6 +37,8 @@ while True:                                   # never stops unless cancelled
 | `ops/target.py` | LQ-first target schema and configured target deletion |
 | `ops/reset.py` | Transactional per-client metadata reset |
 | `notebooks/reset_client_ingest.py` | Guarded dry-run/reset process |
+| `ops/completeness.py` | Per-client CT completeness: loaded tables, counts, ready |
+| `notebooks/ct_group_audit.py` | Forever audit loop for every client in the job_group |
 
 ## Connections
 
@@ -72,6 +75,14 @@ if it fails, the table is reported FAIL and is re-applied next cycle (MERGE is i
    CT replays over the snapshot are idempotent.
 4. Cycle errors are logged, connections reopened next cycle; the loop never exits.
 5. Group membership is hard-coded per job: tasks must match `client.json` `job_group`.
+
+## Completeness audit
+
+`audit_group_1` polls every `freq_run` seconds for every active client in the
+job group. A client is READY when every active table has a watermark, no pending
+CT changes up to the captured `ct_head`, a Delta target, and matching SQL vs
+Delta `COUNT(*)`. Latest status is upserted to `dbo.ingest_completeness`; each
+cycle also appends `dbo.process_log`.
 
 ## Reset
 

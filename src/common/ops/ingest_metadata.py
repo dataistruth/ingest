@@ -297,6 +297,145 @@ def set_group_status(conn, group_id, status, error_message=None):
         cursor.close()
 
 
+def ensure_completeness_table(conn):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            IF OBJECT_ID(N'dbo.ingest_completeness', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.ingest_completeness (
+                    database_name            sysname          NOT NULL,
+                    client_nm                sysname          NOT NULL,
+                    ct_head_version          bigint           NULL,
+                    expected_table_count     int              NOT NULL,
+                    loaded_table_count       int              NOT NULL,
+                    ready_table_count        int              NOT NULL,
+                    sql_row_count            bigint           NULL,
+                    delta_row_count          bigint           NULL,
+                    duration_ms              bigint           NULL,
+                    ready                    bit              NOT NULL,
+                    not_ready_tables         nvarchar(4000)   NULL,
+                    checked_at               datetime2(3)     NOT NULL
+                        CONSTRAINT DF_ingest_completeness_checked DEFAULT SYSUTCDATETIME(),
+                    CONSTRAINT PK_ingest_completeness PRIMARY KEY CLUSTERED (database_name)
+                );
+            END;
+            """
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def upsert_completeness(conn, row):
+    ensure_completeness_table(conn)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            MERGE dbo.ingest_completeness WITH (HOLDLOCK) AS t
+            USING (SELECT ? AS database_name) AS s
+              ON t.database_name = s.database_name
+            WHEN MATCHED THEN UPDATE SET
+                client_nm = ?, ct_head_version = ?,
+                expected_table_count = ?, loaded_table_count = ?,
+                ready_table_count = ?, sql_row_count = ?, delta_row_count = ?,
+                duration_ms = ?, ready = ?, not_ready_tables = ?,
+                checked_at = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (
+                database_name, client_nm, ct_head_version,
+                expected_table_count, loaded_table_count, ready_table_count,
+                sql_row_count, delta_row_count, duration_ms, ready, not_ready_tables
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                row["database_name"],
+                row["client_nm"],
+                row.get("ct_head_version"),
+                int(row["expected_table_count"]),
+                int(row["loaded_table_count"]),
+                int(row["ready_table_count"]),
+                row.get("sql_row_count"),
+                row.get("delta_row_count"),
+                row.get("duration_ms"),
+                1 if row["ready"] else 0,
+                (row.get("not_ready_tables") or "")[:4000] or None,
+                row["database_name"],
+                row["client_nm"],
+                row.get("ct_head_version"),
+                int(row["expected_table_count"]),
+                int(row["loaded_table_count"]),
+                int(row["ready_table_count"]),
+                row.get("sql_row_count"),
+                row.get("delta_row_count"),
+                row.get("duration_ms"),
+                1 if row["ready"] else 0,
+                (row.get("not_ready_tables") or "")[:4000] or None,
+            ),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def record_process_log(
+    conn,
+    process_type,
+    process_name,
+    current_status,
+    client_nm="",
+    database_name="",
+    object_name="",
+    detail_status="",
+    rows_read=None,
+    rows_written=None,
+    start_time=None,
+    end_time=None,
+    log_message="",
+):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT dbo.process_log (
+                process_type, process_name, artifact_type,
+                client_nm, database_name, object_name,
+                current_status, detail_status,
+                rows_read, rows_written,
+                start_time, end_time, log_message
+            )
+            VALUES (?, ?, 'job', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                process_type[:20],
+                process_name[:128],
+                client_nm or None,
+                database_name or None,
+                object_name or None,
+                current_status[:20],
+                (detail_status or "")[:128] or None,
+                rows_read,
+                rows_written,
+                start_time,
+                end_time,
+                (log_message or "")[:4000] or None,
+            ),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
 def complete_group(conn, group_id):
     cursor = conn.cursor()
     try:
