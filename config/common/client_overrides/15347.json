@@ -2,7 +2,23 @@
   "include_common": true,
   "ignore": [
     {
+      "table_nm": "CustomImportData",
+      "is_active": false
+    },
+    {
+      "table_nm": "CustomImportData_Snapshot",
+      "is_active": false
+    },
+    {
+      "table_nm": "SM_SpecialAllocationInput_Snapshot",
+      "is_active": false
+    },
+    {
       "table_nm": "SM_StopCompWHCalculation",
+      "is_active": false
+    },
+    {
+      "table_nm": "SM_WHWaiverExemptRules",
       "is_active": false
     }
   ],

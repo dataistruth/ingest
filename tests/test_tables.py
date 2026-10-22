@@ -43,6 +43,22 @@ def test_client_override_disables_extra_tables():
     assert "ALLENTITY" not in active_names
     assert "DF_DEALS_ARCHIVE" not in active_names
     assert "SM_StopCompWHCalculation" not in active_names
+    skipped_15347 = {
+        "CustomImportData",
+        "CustomImportData_Snapshot",
+        "SM_SpecialAllocationInput_Snapshot",
+        "SM_WHWaiverExemptRules",
+    }
+    assert skipped_15347.isdisjoint(active_names)
+    for table_nm in (
+        "EntityPartnerRelationship",
+        "Partner_Snapshot",
+        "YearlyByInvestment",
+        "Yearly_Snapshot",
+    ):
+        assert table_nm in active_names
+    active_15447 = [t["table_nm"] for t in active_tables(CONFIG, "15447")]
+    assert skipped_15347.isdisjoint(active_15447)
     assert "AtRiskInput_Snapshot" not in [
         t["table_nm"] for t in active_tables(CONFIG, "15447")
     ]
