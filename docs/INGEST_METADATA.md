@@ -1,7 +1,7 @@
-# SQL Server `ipac_common_metdata`
+# SQL Server `ipac_common_metadata`
 
 LakeFlow recon reads pipeline event logs. The custom path has no LakeFlow
-event log. Operational metadata lives in SQL Server **`ipac_common_metdata`**.
+event log. Operational metadata lives in SQL Server **`ipac_common_metadata`**.
 
 **Drivers**
 
@@ -17,6 +17,7 @@ Unity Catalog stores the target Delta tables only.
 USE master;
 DROP DATABASE IF EXISTS ipac_ingest_metadata;
 DROP DATABASE IF EXISTS ipac_common_metdata;
+DROP DATABASE IF EXISTS ipac_common_metadata;
 ```
 
 Then run in order:
@@ -54,7 +55,7 @@ up to the captured head, a Delta target, and matching SQL vs Delta counts.
 The audit notebook upserts `dbo.ingest_completeness` every `freq_run`.
 
 ```sql
-USE ipac_common_metdata;
+USE ipac_common_metadata;
 SELECT * FROM dbo.ingest_completeness ORDER BY client_nm;
 ```
 
@@ -67,4 +68,4 @@ Config: `config/common/sql_server_conn.json`. Scope `scope_ipacs_audit`, keys fr
 - `{env}_sql_server`
 
 The metadata database name is the bundle variable `ingest_metadata_database`
-(`ipac_common_metdata`). Client source DB names come from `database_pattern`.
+(`ipac_common_metadata`). Client source DB names come from `database_pattern`.

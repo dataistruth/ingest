@@ -1,7 +1,7 @@
 /*
   Replace the principal before execution.
 */
-USE ipac_common_metdata;
+USE ipac_common_metadata;
 GO
 
 DECLARE @Principal sysname = N'<KEEP_USER_ID>';

@@ -33,7 +33,7 @@ while True:                                   # never stops unless cancelled
 | `ops/recon.py` | Per-table count compare |
 | `ops/jdbc_extract.py` | Spark JDBC payload reads (CT changes, snapshot) |
 | `ops/ct_source.py` | mssql-python CT head, CT status, pending counts, watermarks |
-| `ops/ingest_metadata.py` | mssql-python writes to `ipac_common_metdata` |
+| `ops/ingest_metadata.py` | mssql-python writes to `ipac_common_metadata` |
 | `ops/target.py` | LQ-first target schema and configured target deletion |
 | `ops/reset.py` | Transactional per-client metadata reset |
 | `notebooks/reset_client_ingest.py` | Guarded dry-run/reset process |
@@ -46,7 +46,7 @@ while True:                                   # never stops unless cancelled
 |------|--------|-----|
 | Payload extract (CT changes, bootstrap snapshot) | Spark JDBC | Row images into a DataFrame for MERGE |
 | CT head, CT status, pending counts, `COUNT(*)` | mssql-python | Cheap scalars / aggregates |
-| Watermarks, group, apply, compare | mssql-python | OLTP in `ipac_common_metdata` |
+| Watermarks, group, apply, compare | mssql-python | OLTP in `ipac_common_metadata` |
 
 ## Parameters (`databricks.yml`)
 
@@ -55,9 +55,9 @@ while True:                                   # never stops unless cancelled
 | `freq_run_sec` | 10 | Notebook `freq_run`: seconds between polls |
 | `parallel_table_run` | 5 | Notebook thread pool size per client |
 | `uc_catalog`, `uc_schema_suffix` | dev7, `_custom` | Target `{catalog}.{lower(db)}{suffix}.{table}` |
-| `ingest_metadata_database` | ipac_common_metdata | SQL Server audit DB |
+| `ingest_metadata_database` | ipac_common_metadata | SQL Server audit DB |
 
-## Metadata writes (SQL Server `ipac_common_metdata`)
+## Metadata writes (SQL Server `ipac_common_metadata`)
 
 1. Cycle with work → `ingest_group` + `ingest_table_change` for the planned tables
 2. Each table → `ct_table_watermark` upsert to `ct_head`, then `ingest_table_apply`

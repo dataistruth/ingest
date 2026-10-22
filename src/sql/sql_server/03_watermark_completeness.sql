@@ -1,7 +1,7 @@
 /*
   Resume pointers and latest completeness snapshot (audit notebook).
 */
-USE ipac_common_metdata;
+USE ipac_common_metadata;
 GO
 
 CREATE TABLE dbo.ct_table_watermark (

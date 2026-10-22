@@ -7,7 +7,7 @@
 # MAGIC 1. mssql-python: `CHANGE_TRACKING_CURRENT_VERSION()` + pending I/U/D per table
 # MAGIC 2. up to `parallel_table_run` threads: JDBC extract, then SCD1 MERGE into Delta
 # MAGIC    (`CLUSTER BY` lq_key / PK). Tables without a watermark get a full snapshot.
-# MAGIC 3. advance the per-table watermark in `ipac_common_metdata`, then recon counts
+# MAGIC 3. advance the per-table watermark in `ipac_common_metadata`, then recon counts
 # MAGIC
 # MAGIC Stops only when the job run is cancelled.
 
@@ -33,7 +33,7 @@ dbutils.widgets.text("freq_run", "10")
 dbutils.widgets.text("parallel_table_run", "5")
 dbutils.widgets.text("uc_catalog", "dev7")
 dbutils.widgets.text("uc_schema_suffix", "_custom")
-dbutils.widgets.text("ingest_metadata_database", "ipac_common_metdata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_common_metadata")
 
 client_name = dbutils.widgets.get("client_name").strip()
 freq_run = int(dbutils.widgets.get("freq_run") or "10")

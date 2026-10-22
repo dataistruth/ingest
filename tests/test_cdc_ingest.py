@@ -83,7 +83,7 @@ def _ctx(existing=()):
         "dbo",
         "dev7",
         "_custom",
-        "ipac_common_metdata",
+        "ipac_common_metadata",
         str(CONFIG_DIR),
     )
     ctx["src_conn"] = object()

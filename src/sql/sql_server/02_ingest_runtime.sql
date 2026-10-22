@@ -2,7 +2,7 @@
   Ingest cycle OLTP: one group per client DB + frozen CT head, then per-table
   change / apply / compare rows, plus process_log.
 */
-USE ipac_common_metdata;
+USE ipac_common_metadata;
 GO
 
 CREATE TABLE dbo.ingest_group (

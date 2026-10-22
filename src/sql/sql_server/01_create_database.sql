@@ -1,18 +1,18 @@
 /*
   Central metadata database for JDBC CT ingest.
 
-  Drop the old ipac_ingest_metadata database first if it still exists, then run
-  this file and 02–04 in order.
+  Drop ipac_ingest_metadata or ipac_common_metdata first if they still exist,
+  then run this file and 02–04 in order.
 */
 USE master;
 GO
 
-IF DB_ID(N'ipac_common_metdata') IS NULL
+IF DB_ID(N'ipac_common_metadata') IS NULL
 BEGIN
-    CREATE DATABASE ipac_common_metdata;
+    CREATE DATABASE ipac_common_metadata;
 END;
 GO
 
-ALTER DATABASE ipac_common_metdata SET RECOVERY SIMPLE;
-ALTER DATABASE ipac_common_metdata SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE ipac_common_metadata SET RECOVERY SIMPLE;
+ALTER DATABASE ipac_common_metadata SET READ_COMMITTED_SNAPSHOT ON;
 GO

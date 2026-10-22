@@ -82,20 +82,89 @@ AND database_name + ct_head_version = that client's last audit snapshot
 
 Do **not** gate calc on “job finished” or “last update time.”
 
-## SQL Server audit database (`ipac_common_metdata`)
+## How a cycle finds changed tables
 
-JDBC ingest does not use LakeFlow event logs. Its operational metadata is kept
-in the SQL Server OLTP database `ipac_common_metdata` and accessed with
-`mssql-python`. Unity Catalog contains only the Delta target tables.
+Candidate tables are **not** discovered from SQL Server. They come from
+`config/common/common_tables.json` plus `client_overrides/<client>.json`
+(`ignore` / `extra`). Only `is_active = true` tables are considered.
 
-| Table | Purpose |
-|-------|---------|
-| `ingest_group` / `ingest_table_change` | Identify CT-changed tables at a frozen `ct_head` |
-| `ingest_table_apply` | Track MERGE I/U/D into Delta |
-| `ingest_table_compare` | Compare CT vs apply, and SQL `COUNT(*)` vs Delta |
-| `ct_table_watermark` | Per-table resume pointer; advanced after that table's MERGE |
-| `ingest_completeness` | Latest READY / NOT_READY per client |
-| `process_log` | Audit history |
+Each ingest cycle on a client notebook:
+
+1. **Freeze the CT head once** from the **source** client database:
+   `SELECT CHANGE_TRACKING_CURRENT_VERSION()`. Every table in that cycle is
+   compared against this same `ct_head`. If the head is unchanged from the
+   last idle cycle, the notebook sleeps `freq_run` seconds and polls again.
+2. **Load resume pointers** from metadata
+   `ipac_common_metadata.dbo.ct_table_watermark` (`last_version` per
+   `database_name` + schema + table).
+3. **Probe each active table** (mssql-python, cheap counts — not the payload):
+   - skip if the object is missing, not a user table, CT is off, or
+     `primary_key_cols` is blank
+   - **snapshot** (full JDBC read + `CREATE OR REPLACE TABLE`) if there is no
+     watermark, the watermark is below `CHANGE_TRACKING_MIN_VALID_VERSION`,
+     or the Unity Catalog target is missing
+   - **CDC** if watermark `< ct_head` **and** CHANGETABLE has pending rows
+   - **idle** if watermark `>= ct_head` or pending total is `0` (that table
+     is marked probed to this head and is not written to `ingest_table_change`)
+4. **Pending I/U/D** (this is how “changed” is defined):
+
+   ```sql
+   SELECT SYS_CHANGE_OPERATION, COUNT_BIG(*)
+   FROM CHANGETABLE(CHANGES [dbo].[TableName], @watermark) AS ct
+   WHERE ct.SYS_CHANGE_OPERATION IN ('I', 'U', 'D')
+     AND ct.SYS_CHANGE_VERSION <= @ct_head
+   GROUP BY SYS_CHANGE_OPERATION
+   ```
+
+   `GROUP BY` returns only operations that occurred. One row with `I=40000`
+   means 40,000 inserts and no updates or deletes in that window. Counts are
+   per table, not one database-wide total.
+5. If any table needs snapshot or CDC, insert **`ingest_group`** (one row for
+   this client DB + frozen `ct_head`) and one **`ingest_table_change`** row per
+   planned table (I/U/D counts; snapshot rows have zeros and
+   `watermark_before = 0`).
+6. Threads (`parallel_table_run`) **extract payload with Spark JDBC**
+   (`CHANGETABLE` join to the source table, or a full snapshot) and SCD1 MERGE
+   into Delta. After a **successful** apply, upsert
+   `ct_table_watermark.last_version = ct_head` for **that table only**.
+7. Write **`ingest_table_apply`** (applied I/U/D + SUCCESS/FAIL) and
+   **`ingest_table_compare`** (CT vs apply, SQL `COUNT(*)` vs Delta). Set
+   `ingest_group.group_status` to PASS or FAIL.
+
+A failed table keeps its old watermark and is retried next cycle. MERGE is
+idempotent.
+
+There is no T-SQL cursor or stored procedure on this detect path. The job
+does not use `sys.dm_tran_commit_table` or a database-wide watermark table.
+
+## SQL Server audit database (`ipac_common_metadata`)
+
+Operational metadata lives here (mssql-python). Unity Catalog holds only
+Delta targets. Payload extract uses Spark JDBC.
+
+| Table | Grain | What it records |
+|-------|--------|-----------------|
+| `ingest_group` | one cycle = `database_name` + `ct_head_version` | Frozen head, table count planned, PASS/FAIL |
+| `ingest_table_change` | group + table | Identify window: `watermark_before` → `ct_head`, pending I/U/D |
+| `ingest_table_apply` | group + table | MERGE/snapshot result: applied I/U/D, SUCCESS/FAIL, duration |
+| `ingest_table_compare` | group + table | CT pending vs applied; SQL `COUNT(*)` vs Delta `COUNT(*)` |
+| `ct_table_watermark` | source DB + schema + table | Last **successfully ingested** CT version (`last_version`) |
+| `ingest_completeness` | one row per client DB | Latest READY / NOT_READY from the audit task |
+| `process_log` | append-only | Cycle and audit messages |
+
+**Views:** `v_ingest_group_compare`, `v_failed_ingest_tables`,
+`v_latest_completeness`.
+
+**Completeness (audit task, not ingest):** READY when every **active** table
+has a watermark, pending CT to the captured head is 0, the Delta table exists,
+and SQL count equals Delta count. Ignore-list tables are excluded.
+
+```sql
+USE ipac_common_metadata;
+SELECT * FROM dbo.ingest_completeness ORDER BY client_nm;
+SELECT * FROM dbo.v_failed_ingest_tables;
+SELECT * FROM dbo.ct_table_watermark WHERE database_name = N'...';
+```
 
 See [docs/INGEST_METADATA.md](docs/INGEST_METADATA.md).
 
@@ -107,3 +176,4 @@ src/sql/sql_server/02_ingest_runtime.sql
 src/sql/sql_server/03_watermark_completeness.sql
 src/sql/sql_server/04_grants.sql
 ```
+

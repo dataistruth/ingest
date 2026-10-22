@@ -78,7 +78,7 @@ def fetch_pending_ct_counts(conn, schema, table_name, watermark_before, ct_head)
 
 
 def fetch_table_watermarks(conn, database_name, schema):
-    """Map table name -> last_version from ipac_common_metdata."""
+    """Map table name -> last_version from ipac_common_metadata."""
     cursor = conn.cursor()
     try:
         cursor.execute(

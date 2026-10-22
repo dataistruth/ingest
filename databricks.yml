@@ -19,7 +19,7 @@ variables:
   uc_schema_suffix:
     default: "_custom"
   ingest_metadata_database:
-    default: ipac_common_metdata
+    default: ipac_common_metadata
   grant_group:
     default: ipacs_dev_team
   job_tag:
@@ -44,7 +44,7 @@ targets:
     variables:
       uc_catalog: dev7
       uc_schema_suffix: "_custom"
-      ingest_metadata_database: ipac_common_metdata
+      ingest_metadata_database: ipac_common_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
       freq_run_sec: "10"
@@ -57,7 +57,7 @@ targets:
     variables:
       uc_catalog: ipac_tax_synch
       uc_schema_suffix: "_custom"
-      ingest_metadata_database: ipac_common_metdata
+      ingest_metadata_database: ipac_common_metadata
       grant_group: ipacs_dev_team
       job_tag: ingest
       freq_run_sec: "10"
