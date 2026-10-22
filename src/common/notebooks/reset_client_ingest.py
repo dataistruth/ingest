@@ -83,13 +83,15 @@ if confirmation != expected:
 # COMMAND ----------
 
 if drop_targets:
-    dropped = drop_target_tables(spark, targets)
+    print("Unity Catalog target reset SQL:")
+    dropped = drop_target_tables(spark, targets, verbose=True)
     print(f"dropped {len(dropped)} configured target tables")
 
 if reset_metadata:
+    print("SQL Server metadata reset SQL:")
     conn = connect_sql_server(sql_server_odbc(login, ingest_metadata_database))
     try:
-        deleted = reset_client_metadata(conn, database_name)
+        deleted = reset_client_metadata(conn, database_name, verbose=True)
     finally:
         conn.close()
     print(f"metadata reset: {deleted}")

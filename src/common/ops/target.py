@@ -39,9 +39,12 @@ def lq_first(df, lq_columns):
     return df.select(*ordered_columns(df.columns, lq_columns))
 
 
-def drop_target_tables(spark, targets):
+def drop_target_tables(spark, targets, verbose=False):
     dropped = []
     for target in targets:
-        spark.sql(f"DROP TABLE IF EXISTS {quote_name(target)}")
+        sql = f"DROP TABLE IF EXISTS {quote_name(target)}"
+        if verbose:
+            print(f"UC SQL: {sql}", flush=True)
+        spark.sql(sql)
         dropped.append(target)
     return dropped

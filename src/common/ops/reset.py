@@ -1,7 +1,7 @@
 """Guarded reset helpers for a single client ingest."""
 
 
-def reset_client_metadata(conn, database_name):
+def reset_client_metadata(conn, database_name, verbose=False):
     """Delete one database's ingest history and watermarks in FK-safe order."""
     statements = [
         (
@@ -71,12 +71,27 @@ def reset_client_metadata(conn, database_name):
     cursor = conn.cursor()
     try:
         for name, sql, params in statements:
+            if verbose:
+                print(
+                    f"METADATA SQL [{name}]: {' '.join(sql.split())} "
+                    f"PARAMS={params}",
+                    flush=True,
+                )
             cursor.execute(sql, params)
             deleted[name] = max(0, int(cursor.rowcount or 0))
+            if verbose:
+                print(
+                    f"METADATA RESULT [{name}]: deleted_rows={deleted[name]}",
+                    flush=True,
+                )
         conn.commit()
+        if verbose:
+            print("METADATA TRANSACTION: COMMIT", flush=True)
         return deleted
     except Exception:
         conn.rollback()
+        if verbose:
+            print("METADATA TRANSACTION: ROLLBACK", flush=True)
         raise
     finally:
         cursor.close()
