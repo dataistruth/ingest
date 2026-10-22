@@ -1,4 +1,4 @@
-"""mssql-python writes to ipac_ingest_metadata."""
+"""mssql-python writes to ipac_common_metdata."""
 
 import uuid
 
@@ -435,16 +435,3 @@ def record_process_log(
     finally:
         cursor.close()
 
-
-def complete_group(conn, group_id):
-    cursor = conn.cursor()
-    try:
-        cursor.execute("EXEC dbo.usp_complete_ingest_group @group_id = ?;", (group_id,))
-        row = cursor.fetchone()
-        conn.commit()
-        return bool(row and row[0])
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cursor.close()

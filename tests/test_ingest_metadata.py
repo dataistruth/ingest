@@ -39,6 +39,8 @@ def test_sql_server_odbc_omits_driver():
 def test_sql_server_ddl_set_exists():
     root = Path(__file__).parents[1] / "src" / "sql" / "sql_server"
     names = sorted(path.name for path in root.glob("*.sql"))
-    assert "001_create_database.sql" in names
-    assert "002_ingest_metadata_tables.sql" in names
-    assert "007_ingest_completeness.sql" in names
+    assert "01_create_database.sql" in names
+    assert "02_ingest_runtime.sql" in names
+    assert "03_watermark_completeness.sql" in names
+    assert "04_grants.sql" in names
+    assert "004_ingest_metadata_procedures.sql" not in names

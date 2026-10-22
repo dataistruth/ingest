@@ -1,9 +1,7 @@
 /*
   Replace the principal before execution.
-  The same service principal/login can read source CT databases and write this
-  central metadata database, or separate read/write principals can be used.
 */
-USE ipac_ingest_metadata;
+USE ipac_common_metdata;
 GO
 
 DECLARE @Principal sysname = N'<KEEP_USER_ID>';
@@ -27,4 +25,3 @@ SET @sql =
     + QUOTENAME(@Principal) + N';';
 EXEC sys.sp_executesql @sql;
 GO
-

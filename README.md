@@ -73,19 +73,19 @@ databricks bundle deploy -t dev
 |-----|------|
 | `j_ipac_ingest_group_1` | Continuous; one ingest task per client plus one group audit task |
 
-## Recon contract (calc gate)
+## Completeness (calc gate)
 
 ```text
-recon_ready.ready_for_calc = true
-AND database_name + ct_head_version = group identity
+ingest_completeness.ready = 1
+AND database_name + ct_head_version = that client's last audit snapshot
 ```
 
 Do **not** gate calc on “job finished” or “last update time.”
 
-## SQL Server audit database (`ipac_ingest_metadata`)
+## SQL Server audit database (`ipac_common_metdata`)
 
 JDBC ingest does not use LakeFlow event logs. Its operational metadata is kept
-in the SQL Server OLTP database `ipac_ingest_metadata` and accessed with
+in the SQL Server OLTP database `ipac_common_metdata` and accessed with
 `mssql-python`. Unity Catalog contains only the Delta target tables.
 
 | Table | Purpose |
@@ -93,17 +93,17 @@ in the SQL Server OLTP database `ipac_ingest_metadata` and accessed with
 | `ingest_group` / `ingest_table_change` | Identify CT-changed tables at a frozen `ct_head` |
 | `ingest_table_apply` | Track MERGE I/U/D into Delta |
 | `ingest_table_compare` | Compare CT vs apply, and SQL `COUNT(*)` vs Delta |
-| `recon_ready` | Calc gate (PASS only) |
 | `ct_table_watermark` | Per-table resume pointer; advanced after that table's MERGE |
+| `ingest_completeness` | Latest READY / NOT_READY per client |
+| `process_log` | Audit history |
 
 See [docs/INGEST_METADATA.md](docs/INGEST_METADATA.md).
 
-Run the DDL in order:
+Run the DDL in order after dropping the old metadata database:
 
 ```text
-src/sql/sql_server/001_create_database.sql
-src/sql/sql_server/002_ingest_metadata_tables.sql
-src/sql/sql_server/003_ingest_metadata_views.sql
-src/sql/sql_server/004_ingest_metadata_procedures.sql
-src/sql/sql_server/005_grants.sql
+src/sql/sql_server/01_create_database.sql
+src/sql/sql_server/02_ingest_runtime.sql
+src/sql/sql_server/03_watermark_completeness.sql
+src/sql/sql_server/04_grants.sql
 ```

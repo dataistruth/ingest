@@ -1,9 +1,7 @@
 /*
+  Source-database script (not metadata).
   Enable Change Tracking on user tables that have a primary key.
-  Views and synonyms cannot use CT — leave them is_active=false in common_tables.json.
-
-  Run on each client database (example: iPC_2025_Dev7_15347).
-  Database-level CT must already be ON.
+  Run on each client database. Database-level CT must already be ON.
 */
 USE [iPC_2025_Dev7_15347];
 GO

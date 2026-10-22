@@ -35,7 +35,7 @@ dbutils.widgets.text("freq_run", "10")
 dbutils.widgets.text("parallel_table_run", "5")
 dbutils.widgets.text("uc_catalog", "dev7")
 dbutils.widgets.text("uc_schema_suffix", "_custom")
-dbutils.widgets.text("ingest_metadata_database", "ipac_ingest_metadata")
+dbutils.widgets.text("ingest_metadata_database", "ipac_common_metdata")
 
 job_group = int(dbutils.widgets.get("job_group") or "1")
 freq_run = int(dbutils.widgets.get("freq_run") or "10")

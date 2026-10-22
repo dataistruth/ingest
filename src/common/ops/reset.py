@@ -18,25 +18,12 @@ def reset_client_metadata(conn, database_name):
         ),
         (
             "ingest_completeness",
-            """
-            IF OBJECT_ID(N'dbo.ingest_completeness', N'U') IS NOT NULL
-                DELETE FROM dbo.ingest_completeness WHERE database_name = ?;
-            """,
+            "DELETE FROM dbo.ingest_completeness WHERE database_name = ?;",
             (database_name,),
         ),
         (
             "ct_table_watermark",
             "DELETE FROM dbo.ct_table_watermark WHERE database_name = ?;",
-            (database_name,),
-        ),
-        (
-            "ct_db_watermark",
-            "DELETE FROM dbo.ct_db_watermark WHERE database_name = ?;",
-            (database_name,),
-        ),
-        (
-            "recon_ready",
-            "DELETE FROM dbo.recon_ready WHERE database_name = ?;",
             (database_name,),
         ),
         (
