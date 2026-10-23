@@ -224,7 +224,7 @@ def apply_cdc(ctx, item, ct_head):
         counts = {"I": 0, "U": 0, "D": 0}
         for row in df.groupBy("sys_change_operation").count().collect():
             counts[str(row[0]).strip().upper()] = int(row[1])
-        cdc.create_auto_cdc_flow(spark, item["target"], df, item["keys"])
+        cdc.cdc_merge(spark, item["target"], df, item["keys"])
         return counts
     finally:
         df.unpersist()

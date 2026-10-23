@@ -17,7 +17,7 @@ while True:                                   # never stops unless cancelled
     else pending = CHANGETABLE(watermark .. ct_head)  → cdc if pending > 0
   ThreadPool(parallel_table_run):
     snapshot: JDBC SELECT * → if lq_key set, LQ columns first + CLUSTER BY; else no LQ
-    cdc:      JDBC CHANGETABLE payload → SCD1 MERGE (delete on D)
+    cdc:      JDBC CHANGETABLE payload → cdc.cdc_merge (SCD1 MERGE, delete on D)
     upsert ct_table_watermark = ct_head         # per table, after success
     recon: CT rows vs applied, SQL COUNT(*) vs Delta (that table only; cache counts)
   sleep(freq_run − elapsed)
@@ -29,7 +29,7 @@ while True:                                   # never stops unless cancelled
 |--------|------|
 | `notebooks/ct_client_ingest.py` | Widgets, secrets, UC schema, then `run_forever` |
 | `ops/ingest.py` | Cycle: probe CT, plan tables, thread pool, logging |
-| `ops/cdc.py` | Snapshot create (`CLUSTER BY`) and SCD1 MERGE with per-call unique temp views |
+| `ops/cdc.py` | Snapshot create (`CLUSTER BY`) and `cdc_merge` SCD1 MERGE |
 | `ops/recon.py` | Per-table count compare |
 | `ops/jdbc_extract.py` | Spark JDBC payload reads (CT changes, snapshot) |
 | `ops/ct_source.py` | mssql-python CT head, CT status, pending counts, watermarks |

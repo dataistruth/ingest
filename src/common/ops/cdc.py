@@ -39,7 +39,7 @@ def create_table_from_df(spark, target, df, cluster_keys, lq_keys=None):
         spark.catalog.dropTempView(view)
 
 
-def create_auto_cdc_flow(
+def cdc_merge(
     spark,
     target,
     source,
